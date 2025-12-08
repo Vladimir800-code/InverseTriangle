@@ -1,0 +1,3710 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Triangle Solver — Inverse Geometry Tool</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+    .container { display: flex; margin: 20px 0; gap: 20px; flex-wrap: wrap; }
+    .panel { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .visualization-panel { flex: 2; min-width: 500px; position: relative; }
+    .control-panel { flex: 1; min-width: 300px; display: flex; flex-direction: column; }
+    h1, h2, h3 { color: #2c3e50; margin-top: 0; }
+    h1 { font-size: 24px; margin-bottom: 10px; }
+    h2 { font-size: 20px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+    .param-group { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db; }
+    .param-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+    .param-label { min-width: 40px; font-weight: bold; color: #2c3e50; }
+    select.param-select { flex: 2; padding: 8px 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px; transition: border-color 0.3s; }
+    select.param-select:focus { border-color: #3498db; outline: none; }
+    input.param-value { flex: 1; padding: 8px 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px; text-align: right; min-width: 80px; }
+    input.param-value:focus { border-color: #3498db; outline: none; }
+    .slider-container { flex: 2; display: flex; flex-direction: column; gap: 5px; }
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    .slider-value { min-width: 50px; text-align: right; font-weight: bold; color: #2c3e50; font-size: 13px; }
+    input.param-slider { flex: 1; height: 6px; border-radius: 3px; background: #ddd; outline: none; -webkit-appearance: none; }
+    input.param-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #3498db; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    input.param-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #3498db; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    
+    /* Чекбоксы фиксации */
+    .fix-checkbox-container { display: flex; align-items: center; margin-left: 5px; }
+    .fix-checkbox-label { font-size: 12px; color: #7f8c8d; margin-left: 4px; white-space: nowrap; }
+    input.fix-checkbox { width: 16px; height: 16px; cursor: pointer; }
+    .param-row.fixed .param-select,
+    .param-row.fixed .param-value,
+    .param-row.fixed .slider-value { opacity: 0.7; background-color: #f5f5f5; }
+    
+    .button-group { display: flex; gap: 10px; margin-top: 20px; }
+    button { padding: 12px 20px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; flex: 1; }
+    #solveBtn { background: #2ecc71; color: white; }
+    #solveBtn:hover { background: #27ae60; transform: translateY(-2px); }
+    #solveBtn:disabled { background: #95a5a6; cursor: not-allowed; transform: none; }
+    #randomBtn { background: #3498db; color: white; }
+    #randomBtn:hover { background: #2980b9; transform: translateY(-2px); }
+    #randomParamsBtn { background: #9b59b6; color: white; }
+    #randomParamsBtn:hover { background: #8e44ad; transform: translateY(-2px); }
+    #randomParamsBtn:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
+    #clearBtn { background: #e74c3c; color: white; }
+    #clearBtn:hover { background: #c0392b; transform: translateY(-2px); }
+    #testBtn { background: #9b59b6; color: white; flex: 0.5; }
+    #testBtn:hover { background: #8e44ad; transform: translateY(-2px); }
+    #validateBtn { background: #f39c12; color: white; flex: 0.5; }
+    #validateBtn:hover { background: #d68910; transform: translateY(-2px); }
+    #debugBtn { background: #34495e; color: white; flex: 0.5; }
+    #debugBtn:hover { background: #2c3e50; transform: translateY(-2px); }
+    #solveAllBtn { background: #9b59b6; color: white; flex: 0.5; }
+    #solveAllBtn:hover { background: #8e44ad; transform: translateY(-2px); }
+    #solveAllBtn:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
+    #checkBtn { background: #f39c12; color: white; flex: 0.5; }
+    #checkBtn:hover { background: #d68910; transform: translateY(-2px); }
+    #feasibilityBtn { background: #1abc9c; color: white; flex: 0.5; }
+    #feasibilityBtn:hover { background: #16a085; transform: translateY(-2px); }
+    .type-btn { padding: 8px 12px; font-size: 14px; flex: 0.33; }
+    .progress-container { margin-top: 20px; background: #ecf0f1; border-radius: 10px; overflow: hidden; height: 20px; display: none; }
+    #progressBar { height: 100%; background: linear-gradient(90deg, #3498db, #2ecc71); width: 0%; transition: width 0.5s; }
+    #progressText { display: block; text-align: center; margin-top: 5px; font-size: 14px; color: #7f8c8d; }
+    .result-info { margin-top: 20px; padding: 15px; background: #e8f6f3; border-radius: 8px; border-left: 4px solid #1abc9c; }
+    .result-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px; }
+    .result-label { font-weight: bold; color: #2c3e50; }
+    .result-value { color: #16a085; font-weight: bold; }
+    .result-row.angle-coords { font-size: 13px; color: #7f8c8d; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #ddd; }
+    .result-row.angle-coords .result-label { color: #7f8c8d; font-weight: normal; }
+    .result-row.angle-coords .result-value { color: #9b59b6; font-weight: bold; }
+    .result-row.triangle-type { font-size: 13px; color: #7f8c8d; font-style: italic; }
+    .table-container { margin-top: 20px; max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: #34495e; color: white; padding: 8px; text-align: left; position: sticky; top: 0; }
+    td { padding: 6px 8px; border-bottom: 1px solid #ddd; }
+    tr:nth-child(even) { background: #f8f9fa; }
+    tr:hover { background: #e3f2fd; }
+    td.invalid { background-color: #ffeaea; color: #e74c3c; }
+    td.valid { background-color: #e8f6f3; }
+    .chart-container { width: 100%; height: 500px; margin-bottom: 20px; position: relative; }
+    canvas { width: 100% !important; height: 100% !important; }
+    .scale-control { position: absolute; right: 20px; bottom: 20px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; width: 200px; }
+    .scale-control h4 { margin: 0 0 8px 0; font-size: 14px; color: #2c3e50; }
+    .scale-slider { width: 100%; margin: 5px 0; }
+    .scale-value { font-size: 12px; color: #7f8c8d; text-align: center; margin-top: 5px; }
+    .info-box { background: #fff8e1; border-left: 4px solid #ffb300; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; font-size: 14px; }
+    .error-message { color: #e74c3c; font-size: 14px; margin-top: 10px; padding: 10px; background: #ffeaea; border-radius: 6px; border-left: 4px solid #e74c3c; }
+    .error-message.hidden { display: none; }
+    .validation-panel { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #f39c12; }
+    .validation-result { margin: 5px 0; padding: 8px; border-radius: 4px; font-size: 13px; }
+    .validation-ok { background: #d4edda; color: #155724; border-left: 3px solid #28a745; }
+    .validation-error { background: #f8d7da; color: #721c24; border-left: 3px solid #dc3545; }
+    .validation-warning { background: #fff3cd; color: #856404; border-left: 3px solid #ffc107; }
+    .debug-panel { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #34495e; }
+    .debug-row { display: flex; justify-content: space-between; margin: 3px 0; font-size: 12px; font-family: monospace; }
+    .debug-label { color: #2c3e50; }
+    .debug-value { color: #9b59b6; font-weight: bold; }
+    .solutions-panel { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #9b59b6; }
+    .solutions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .solutions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
+    .solution-thumb { background: white; border-radius: 6px; padding: 10px; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; text-align: center; }
+    .solution-thumb:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-color: #3498db; }
+    .solution-thumb.active { border-color: #2ecc71; background: #e8f6f3; }
+    .solution-thumb.mirror .thumb-title::after { content: " 🪞"; font-size: 10px; }
+    .solution-thumb .thumb-title { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #2c3e50; }
+    .solution-thumb .thumb-info { font-size: 10px; color: #7f8c8d; }
+    .solution-actions { display: flex; gap: 5px; margin-top: 8px; }
+    .solution-btn { padding: 4px 8px; font-size: 10px; border-radius: 3px; border: none; cursor: pointer; flex: 1; }
+    .view-btn { background: #3498db; color: white; }
+    .animate-btn { background: #9b59b6; color: white; }
+    .solution-navigation { display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
+    .nav-btn { padding: 6px 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; background: #34495e; color: white; }
+    .nav-btn:hover { background: #2c3e50; }
+    .solution-indicator { display: inline-block; margin-left: 10px; font-size: 14px; color: #9b59b6; font-weight: bold; }
+    .compatibility-panel { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #f39c12; }
+    .compatibility-result { margin: 5px 0; padding: 8px; border-radius: 4px; font-size: 13px; }
+    .status-panel { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db; }
+    .status-message { margin: 5px 0; padding: 8px; border-radius: 4px; font-size: 13px; }
+    .status-info { background: #d1ecf1; color: #0c5460; border-left: 3px solid #17a2b8; }
+    .status-warning { background: #fff3cd; color: #856404; border-left: 3px solid #ffc107; }
+    .status-error { background: #f8d7da; color: #721c24; border-left: 3px solid #dc3545; }
+    .status-success { background: #d4edda; color: #155724; border-left: 3px solid #28a745; }
+    .floating-message { 
+      position: fixed; 
+      top: 20px; 
+      right: 20px; 
+      padding: 15px; 
+      border-radius: 8px; 
+      color: white; 
+      font-weight: bold; 
+      z-index: 1000; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+      animation: fadeIn 0.3s; 
+      max-width: 400px; 
+      max-height: 300px; 
+      overflow-y: auto; 
+      line-height: 1.4; 
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 900px) {
+      .container { flex-direction: column; }
+      .visualization-panel, .control-panel { min-width: 100%; }
+      .scale-control { position: relative; right: auto; bottom: auto; width: 100%; margin-top: 10px; }
+      .solutions-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+      .param-row { flex-wrap: wrap; }
+      .fix-checkbox-container { margin-left: auto; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🔺 Triangle Solver — Inverse Geometry Calculator</h1>
+  <div class="info-box">
+    <strong>Улучшенная система:</strong> Теперь включает проверку практической реализуемости, численной стабильности и адаптивную оптимизацию.
+    <span id="allSolutionsInfo" style="display: none; color: #9b59b6; margin-left: 10px;">
+      | Найдено решений: <span id="solutionsCount">0</span>
+    </span>
+  </div>
+  
+  <div class="container">
+    <div class="panel visualization-panel">
+      <h2>Визуализация треугольника 
+        <span id="solutionIndicator" class="solution-indicator"></span>
+      </h2>
+      <div class="chart-container">
+        <canvas id="triangleChart"></canvas>
+        <div class="scale-control">
+          <h4 style="margin: 0 0 8px 0;">Вертикальный масштаб:</h4>
+          <input type="range" class="scale-slider" id="yScale" min="40" max="200" step="10">
+          <div class="scale-value">
+            Масштаб: <span id="yScaleLabel" class="percent"></span>%
+          </div>
+        </div>
+      </div>
+      <div class="result-info">
+        <div class="result-row">
+          <span class="result-label">Статус:</span>
+          <span id="statusText" class="result-value">Ожидание входных данных</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Точность:</span>
+          <span id="accuracyText" class="result-value">-</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Итераций:</span>
+          <span id="iterationsText" class="result-value">0</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Масштаб (R):</span>
+          <span id="scaleText" class="result-value">1.00</span>
+        </div>
+        <div class="result-row angle-coords">
+          <span class="result-label">Угол A (α):</span>
+          <span id="angleAText" class="result-value">-</span>
+        </div>
+        <div class="result-row angle-coords">
+          <span class="result-label">Угол B (β):</span>
+          <span id="angleBText" class="result-value">-</span>
+        </div>
+        <div class="result-row angle-coords">
+          <span class="result-label">Угол C (γ):</span>
+          <span id="angleCText" class="result-value">-</span>
+        </div>
+        <div class="result-row triangle-type">
+          <span class="result-label">Тип:</span>
+          <span id="triangleTypeText" class="result-value">-</span>
+        </div>
+      </div>
+      
+      <div id="statusPanel" class="status-panel" style="display: none;">
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Статус и предупреждения</h4>
+        <div id="statusMessages"></div>
+      </div>
+      
+      <div id="debugPanel" class="debug-panel" style="display: none;">
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Отладка координат</h4>
+        <div id="debugResults"></div>
+      </div>
+    </div>
+    
+    <div class="panel control-panel">
+      <h2>Задание параметров</h2>
+      
+      <div class="param-group">
+        <div class="param-row" id="paramRow1">
+          <div class="param-label">1.</div>
+          <select class="param-select" id="param1">
+            <option value="">Выберите параметр...</option>
+          </select>
+          <input type="number" class="param-value" id="value1" step="0.001" placeholder="значение">
+          <div class="fix-checkbox-container">
+            <input type="checkbox" class="fix-checkbox" id="fixParam1" title="Зафиксировать значение">
+            <label for="fixParam1" class="fix-checkbox-label">Закрепить</label>
+          </div>
+        </div>
+        <div class="slider-container" id="sliderContainer1" style="display: none;">
+          <div class="slider-row">
+            <span class="slider-value" id="sliderValue1">0</span>
+            <input type="range" class="param-slider" id="slider1" min="0" max="100" step="0.1">
+          </div>
+        </div>
+        
+        <div class="param-row" id="paramRow2">
+          <div class="param-label">2.</div>
+          <select class="param-select" id="param2">
+            <option value="">Выберите параметр...</option>
+          </select>
+          <input type="number" class="param-value" id="value2" step="0.001" placeholder="значение">
+          <div class="fix-checkbox-container">
+            <input type="checkbox" class="fix-checkbox" id="fixParam2" title="Зафиксировать значение">
+            <label for="fixParam2" class="fix-checkbox-label">Закрепить</label>
+          </div>
+        </div>
+        <div class="slider-container" id="sliderContainer2" style="display: none;">
+          <div class="slider-row">
+            <span class="slider-value" id="sliderValue2">0</span>
+            <input type="range" class="param-slider" id="slider2" min="0" max="100" step="0.1">
+          </div>
+        </div>
+        
+        <div class="param-row" id="paramRow3">
+          <div class="param-label">3.</div>
+          <select class="param-select" id="param3">
+            <option value="">Выберите параметр...</option>
+          </select>
+          <input type="number" class="param-value" id="value3" step="0.001" placeholder="значение">
+          <div class="fix-checkbox-container">
+            <input type="checkbox" class="fix-checkbox" id="fixParam3" title="Зафиксировать значение">
+            <label for="fixParam3" class="fix-checkbox-label">Закрепить</label>
+          </div>
+        </div>
+        <div class="slider-container" id="sliderContainer3" style="display: none;">
+          <div class="slider-row">
+            <span class="slider-value" id="sliderValue3">0</span>
+            <input type="range" class="param-slider" id="slider3" min="0" max="100" step="0.1">
+          </div>
+        </div>
+      </div>
+      
+      <div class="button-group">
+        <button id="solveBtn" onclick="startSolvingEnhanced()">Рассчитать</button>
+        <button id="randomBtn" onclick="generateRandomProblem()">Случайная задача</button>
+        <button id="randomParamsBtn" onclick="randomizeNonFixedParameters()" disabled>Случайные параметры</button>
+        <button id="clearBtn" onclick="clearAll()">Очистить</button>
+      </div>
+      
+      <div class="button-group" style="margin-top: 10px;">
+        <button id="solveAllBtn" onclick="findAllSolutionsEnhanced()">Все решения</button>
+        <button id="checkBtn" onclick="checkCompatibility()">Проверить совместимость</button>
+        <button id="feasibilityBtn" onclick="checkPracticalFeasibilityUI()">Практическая проверка</button>
+        <button id="testBtn" onclick="testAndDisplayFormulas()">Тест формул</button>
+        <button id="validateBtn" onclick="validateCurrentTriangleEnhanced()">Проверить</button>
+        <button id="debugBtn" onclick="debugCoordinates()">Отладка</button>
+      </div>
+      
+      <div class="button-group" style="margin-top: 10px;">
+        <button onclick="generateTriangleByType('equilateral')" class="type-btn" style="background: #2ecc71;">
+          Равносторонний
+        </button>
+        <button onclick="generateTriangleByType('right')" class="type-btn" style="background: #e74c3c;">
+          Прямоугольный
+        </button>
+        <button onclick="generateTriangleByType('isosceles')" class="type-btn" style="background: #3498db;">
+          Равнобедренный
+        </button>
+      </div>
+      
+      <div id="errorMessage" class="error-message hidden">
+        <!-- Сообщения об ошибках будут здесь -->
+      </div>
+      
+      <div id="statusMessagesInline" class="status-panel" style="margin-top: 20px; display: none;">
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Сообщения системы</h4>
+        <div id="inlineStatusContent"></div>
+      </div>
+      
+      <div class="progress-container" id="progressContainer">
+        <div id="progressBar"></div>
+      </div>
+      <span id="progressText">Готово</span>
+      
+      <div id="compatibilityPanel" class="compatibility-panel" style="display: none;">
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Проверка совместимости параметров</h4>
+        <div id="compatibilityResults"></div>
+      </div>
+      
+      <div id="validationPanel" class="validation-panel" style="display: none;">
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Проверка геометрии</h4>
+        <div id="validationResults"></div>
+      </div>
+      
+      <div class="info-box" style="margin-top: 20px;">
+        <strong>Подсказка:</strong> Выберите 3 разных параметра из списка. Используйте ползунки или введите значения вручную. Отметьте «Закрепить» для фиксации параметра. Нажмите "Рассчитать" для поиска треугольника.
+      </div>
+    </div>
+  </div>
+  
+  <div id="solutionsPanel" class="solutions-panel" style="display: none;">
+    <div class="solutions-header">
+      <h3 style="margin: 0;">Найденные решения (<span id="solutionsCountDisplay">0</span>)</h3>
+      <div>
+        <button onclick="showPreviousSolution()" class="nav-btn">◀ Предыдущее</button>
+        <button onclick="showNextSolution()" class="nav-btn">Следующее ▶</button>
+        <button onclick="closeSolutionsPanel()" class="nav-btn" style="background: #e74c3c;">✕ Закрыть</button>
+      </div>
+    </div>
+    <div class="info-box" style="margin: 10px 0; padding: 8px; font-size: 13px;">
+      <strong>Все решения конгруэнтны или симметричны.</strong> Симметричные варианты отмечены 🪞. Нажмите на миниатюру для просмотра.
+    </div>
+    <div id="solutionsGrid" class="solutions-grid"></div>
+    <div class="solution-navigation">
+      <button onclick="showSolution(0)" class="nav-btn">Первое</button>
+      <button onclick="showSolution(allSolutions.length-1)" class="nav-btn">Последнее</button>
+    </div>
+  </div>
+  
+  <div class="panel" style="margin-top: 20px;">
+    <h2>Все параметры треугольника</h2>
+    <div class="table-container">
+      <table id="allParamsTable">
+        <thead>
+          <tr>
+            <th>№</th>
+            <th>Название</th>
+            <th>Обозначение</th>
+            <th>Значение</th>
+            <th>Проверка</th>
+          </tr>
+        </thead>
+        <tbody id="paramsTableBody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let allParameters = [];
+    let selectedParameters = {};
+    let currentSolution = null;
+    let chart = null;
+    let allSolutions = [];
+    let currentSolutionIndex = 0;
+    let isFindingAll = false;
+    let currentStatusMessages = [];
+    
+    const paramRanges = {
+      'sideAB': { min: 0.1, max: 5.0, step: 0.01 },
+      'sideBC': { min: 0.1, max: 5.0, step: 0.01 },
+      'sideAC': { min: 0.1, max: 5.0, step: 0.01 },
+      'angleA': { min: 10, max: 170, step: 0.1 },
+      'angleB': { min: 10, max: 170, step: 0.1 },
+      'angleC': { min: 10, max: 170, step: 0.1 },
+      'altitudeA': { min: 0.05, max: 5.0, step: 0.01 },
+      'altitudeB': { min: 0.05, max: 5.0, step: 0.01 },
+      'altitudeC': { min: 0.05, max: 5.0, step: 0.01 },
+      'bisectorA': { min: 0.05, max: 5.0, step: 0.01 },
+      'bisectorB': { min: 0.05, max: 5.0, step: 0.01 },
+      'bisectorC': { min: 0.05, max: 5.0, step: 0.01 },
+      'medianA': { min: 0.05, max: 5.0, step: 0.01 },
+      'medianB': { min: 0.05, max: 5.0, step: 0.01 },
+      'medianC': { min: 0.05, max: 5.0, step: 0.01 },
+      'inradius': { min: 0.01, max: 2.5, step: 0.01 },
+      'area': { min: 0.01, max: 6.25, step: 0.01 },
+      'circumradius': { min: 0.5, max: 5.0, step: 0.01 }
+    };
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      initParameters();
+      initChart();
+      setupEventListeners();
+      initVerticalScaleControl();
+      document.getElementById('solveAllBtn').disabled = true;
+      setupFixCheckboxes();
+      setupEnhancedEventListeners();
+    });
+    
+    function initParameters() {
+      allParameters = [
+        { name: 'Сторона AB', designation: 'c', key: 'sideAB' },
+        { name: 'Сторона BC', designation: 'a', key: 'sideBC' },
+        { name: 'Сторона AC', designation: 'b', key: 'sideAC' },
+        { name: 'Угол A', designation: 'α', key: 'angleA' },
+        { name: 'Угол B', designation: 'β', key: 'angleB' },
+        { name: 'Угол C', designation: 'γ', key: 'angleC' },
+        { name: 'Высота из A', designation: 'hₐ', key: 'altitudeA' },
+        { name: 'Высота из B', designation: 'hբ', key: 'altitudeB' },
+        { name: 'Высота из C', designation: 'h𝒸', key: 'altitudeC' },
+        { name: 'Биссектриса из A', designation: 'lₐ', key: 'bisectorA' },
+        { name: 'Биссектриса из B', designation: 'lբ', key: 'bisectorB' },
+        { name: 'Биссектриса из C', designation: 'l𝒸', key: 'bisectorC' },
+        { name: 'Медиана из A', designation: 'mₐ', key: 'medianA' },
+        { name: 'Медиана из B', designation: 'mբ', key: 'medianB' },
+        { name: 'Медиана из C', designation: 'm𝒸', key: 'medianC' },
+        { name: 'Радиус вписанной', designation: 'r', key: 'inradius' },
+        { name: 'Площадь', designation: 'S', key: 'area' },
+        { name: 'Радиус описанной', designation: 'R', key: 'circumradius' }
+      ];
+      
+      fillParameterSelects();
+      setupSliders();
+      updateAllParamsTable();
+    }
+    
+    function fillParameterSelects() {
+      const selects = ['param1', 'param2', 'param3'];
+      
+      selects.forEach((selectId, index) => {
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Выберите параметр...</option>';
+        
+        allParameters.forEach(param => {
+          const option = document.createElement('option');
+          option.value = param.key;
+          option.textContent = `${param.designation} - ${param.name}`;
+          select.appendChild(option);
+        });
+        
+        select.addEventListener('change', function() {
+          updateSliderForParam(index + 1, this.value);
+          validateParameterSelection();
+          updateRandomParamsButtonState();
+          clearStatusMessages();
+        });
+      });
+    }
+    
+    function setupSliders() {
+      for (let i = 1; i <= 3; i++) {
+        const slider = document.getElementById(`slider${i}`);
+        const valueDisplay = document.getElementById(`sliderValue${i}`);
+        const input = document.getElementById(`value${i}`);
+        
+        if (slider && valueDisplay && input) {
+          slider.addEventListener('input', function() {
+            const paramKey = document.getElementById(`param${i}`).value;
+            if (!paramKey) return;
+            
+            const range = paramRanges[paramKey];
+            if (!range) return;
+            
+            const normalizedValue = parseFloat(this.value);
+            const realValue = range.min + (range.max - range.min) * (normalizedValue / 100);
+            
+            let displayValue;
+            if (paramKey.includes('angle')) {
+              displayValue = realValue.toFixed(1) + '°';
+              input.value = realValue.toFixed(1);
+            } else {
+              displayValue = realValue.toFixed(3);
+              input.value = realValue.toFixed(3);
+            }
+            
+            valueDisplay.textContent = displayValue;
+            validateParameterSelection();
+            clearStatusMessages();
+          });
+          
+          input.addEventListener('input', function() {
+            const paramKey = document.getElementById(`param${i}`).value;
+            if (!paramKey) return;
+            
+            const range = paramRanges[paramKey];
+            if (!range) return;
+            
+            const inputValue = parseFloat(this.value);
+            if (isNaN(inputValue)) return;
+            
+            const clampedValue = Math.max(range.min, Math.min(range.max, inputValue));
+            
+            if (Math.abs(inputValue - clampedValue) > 0.001) {
+              this.value = clampedValue.toFixed(paramKey.includes('angle') ? 1 : 3);
+            }
+            
+            const normalizedValue = ((clampedValue - range.min) / (range.max - range.min)) * 100;
+            
+            slider.value = normalizedValue;
+            
+            let displayValue;
+            if (paramKey.includes('angle')) {
+              displayValue = clampedValue.toFixed(1) + '°';
+            } else {
+              displayValue = clampedValue.toFixed(3);
+            }
+            
+            valueDisplay.textContent = displayValue;
+            validateParameterSelection();
+            clearStatusMessages();
+          });
+          
+          document.getElementById(`param${i}`).addEventListener('change', function() {
+            updateSliderForParam(i, this.value);
+            clearStatusMessages();
+          });
+        }
+      }
+    }
+    
+    function updateSliderForParam(paramIndex, paramKey) {
+      const sliderContainer = document.getElementById(`sliderContainer${paramIndex}`);
+      const slider = document.getElementById(`slider${paramIndex}`);
+      const valueDisplay = document.getElementById(`sliderValue${paramIndex}`);
+      const input = document.getElementById(`value${paramIndex}`);
+      
+      if (!paramKey) {
+        sliderContainer.style.display = 'none';
+        input.value = '';
+        document.getElementById(`fixParam${paramIndex}`).checked = false;
+        return;
+      }
+      
+      const range = paramRanges[paramKey];
+      if (!range) {
+        sliderContainer.style.display = 'none';
+        return;
+      }
+      
+      sliderContainer.style.display = 'flex';
+      
+      let initialValue;
+      if (input.value && !isNaN(parseFloat(input.value))) {
+        initialValue = parseFloat(input.value);
+        initialValue = Math.max(range.min, Math.min(range.max, initialValue));
+      } else {
+        initialValue = (range.min + range.max) / 2;
+      }
+      
+      if (paramKey.includes('angle')) {
+        input.value = initialValue.toFixed(1);
+      } else {
+        input.value = initialValue.toFixed(3);
+      }
+      
+      const normalizedValue = ((initialValue - range.min) / (range.max - range.min)) * 100;
+      
+      slider.value = normalizedValue;
+      
+      let displayValue;
+      if (paramKey.includes('angle')) {
+        displayValue = initialValue.toFixed(1) + '°';
+      } else {
+        displayValue = initialValue.toFixed(3);
+      }
+      
+      valueDisplay.textContent = displayValue;
+    }
+    
+    function validateParameterSelection() {
+      const params = [];
+      const values = {};
+      let isValid = true;
+      
+      hideErrorMessage();
+      hideCompatibilityPanel();
+      
+      for (let i = 1; i <= 3; i++) {
+        const select = document.getElementById(`param${i}`);
+        const input = document.getElementById(`value${i}`);
+        const paramKey = select.value;
+        const value = parseFloat(input.value);
+        
+        if (paramKey && !isNaN(value)) {
+          if (params.includes(paramKey)) {
+            isValid = false;
+            showErrorMessage(`Параметр ${getParameterName(paramKey)} выбран дважды!`, true);
+            break;
+          }
+          
+          if (!validateParameterValue(paramKey, value)) {
+            isValid = false;
+            break;
+          }
+          
+          params.push(paramKey);
+          values[paramKey] = value;
+        } else if (paramKey || input.value) {
+          isValid = false;
+        }
+      }
+      
+      if (params.length === 3) {
+        selectedParameters = values;
+        document.getElementById('solveBtn').disabled = false;
+        document.getElementById('solveAllBtn').disabled = false;
+        document.getElementById('statusText').textContent = 'Готово к расчёту';
+        document.getElementById('statusText').style.color = '#2ecc71';
+      } else {
+        selectedParameters = {};
+        document.getElementById('solveBtn').disabled = true;
+        document.getElementById('solveAllBtn').disabled = true;
+        document.getElementById('statusText').textContent = 'Выберите 3 разных параметра';
+        document.getElementById('statusText').style.color = '#7f8c8d';
+      }
+      
+      updateRandomParamsButtonState();
+      return isValid;
+    }
+    
+    function validateParameterValue(paramKey, value) {
+      if (paramKey.includes('angle')) {
+        if (value < 10 || value > 170) {
+          showErrorMessage(`Угол ${getParameterName(paramKey)} должен быть между 10° и 170°!`, true);
+          return false;
+        }
+      } else if (value <= 0) {
+        showErrorMessage(`${getParameterName(paramKey)} должна быть положительной!`, true);
+        return false;
+      }
+      
+      const range = paramRanges[paramKey];
+      if (range) {
+        if (value < range.min || value > range.max) {
+          showErrorMessage(`${getParameterName(paramKey)} должна быть в диапазоне ${range.min} - ${range.max}!`, true);
+          return false;
+        }
+      }
+      
+      return true;
+    }
+    
+    function getParameterName(key) {
+      const param = allParameters.find(p => p.key === key);
+      return param ? `${param.designation} (${param.name})` : key;
+    }
+    
+    // ========== УСОВЕРШЕНСТВАННАЯ ПРОВЕРКА СОВМЕСТИМОСТИ ПАРАМЕТРОВ ==========
+    function checkParameterCompatibility(params) {
+        const checks = [];
+        const ε = 1e-6;
+        
+        // Сбор всех известных параметров для анализа
+        const knownSides = {
+            a: params.sideBC,
+            b: params.sideAC,
+            c: params.sideAB
+        };
+        
+        const knownAngles = {
+            A: params.angleA,
+            B: params.angleB,
+            C: params.angleC
+        };
+        
+        const knownHeights = {
+            ha: params.altitudeA,
+            hb: params.altitudeB,
+            hc: params.altitudeC
+        };
+        
+        const knownMedians = {
+            ma: params.medianA,
+            mb: params.medianB,
+            mc: params.medianC
+        };
+        
+        const knownBisectors = {
+            la: params.bisectorA,
+            lb: params.bisectorB,
+            lc: params.bisectorC
+        };
+        
+        // 1. Проверка треугольника по трем сторонам
+        if (params.sideAB && params.sideBC && params.sideAC) {
+            const a = params.sideBC;
+            const b = params.sideAC;
+            const c = params.sideAB;
+            
+            const triangleInequality1 = a + b > c;
+            const triangleInequality2 = a + c > b;
+            const triangleInequality3 = b + c > a;
+            
+            if (!triangleInequality1) {
+                checks.push({
+                    type: 'error',
+                    message: `Нарушено неравенство треугольника: a(${a.toFixed(3)}) + b(${b.toFixed(3)}) > c(${c.toFixed(3)})`
+                });
+            }
+            if (!triangleInequality2) {
+                checks.push({
+                    type: 'error',
+                    message: `Нарушено неравенство треугольника: a(${a.toFixed(3)}) + c(${c.toFixed(3)}) > b(${b.toFixed(3)})`
+                });
+            }
+            if (!triangleInequality3) {
+                checks.push({
+                    type: 'error',
+                    message: `Нарушено неравенство треугольника: b(${b.toFixed(3)}) + c(${c.toFixed(3)}) > a(${a.toFixed(3)})`
+                });
+            }
+        }
+        
+        // 2. Проверка суммы углов
+        const definedAngles = [];
+        let definedAnglesSum = 0;
+        const angleLetters = ['A', 'B', 'C'];
+        
+        angleLetters.forEach(letter => {
+            const angle = knownAngles[letter];
+            if (angle !== undefined) {
+                definedAngles.push(letter);
+                definedAnglesSum += angle;
+            }
+        });
+        
+        if (definedAngles.length >= 2) {
+            if (definedAnglesSum >= 180 - ε) {
+                checks.push({
+                    type: 'error',
+                    message: `Сумма заданных углов (${definedAnglesSum.toFixed(2)}°) должна быть строго меньше 180°`
+                });
+            }
+        }
+        
+        if (definedAngles.length === 3) {
+            const angleError = Math.abs(definedAnglesSum - 180);
+            if (angleError > 1) {
+                checks.push({
+                    type: 'error',
+                    message: `Сумма всех трех углов (${definedAnglesSum.toFixed(2)}°) должна быть равна 180° (±1°). Отклонение: ${angleError.toFixed(2)}°`
+                });
+            } else if (angleError > 0.1) {
+                checks.push({
+                    type: 'warning',
+                    message: `Сумма углов (${definedAnglesSum.toFixed(2)}°) немного отличается от 180°. Отклонение: ${angleError.toFixed(2)}°`
+                });
+            }
+        }
+        
+        // 3. Проверка теоремы синусов для известных пар сторона-противолежащий угол
+        const sineLawPairs = [];
+        
+        if (knownSides.a && knownAngles.A) sineLawPairs.push({ side: knownSides.a, angle: knownAngles.A, ratio: null });
+        if (knownSides.b && knownAngles.B) sineLawPairs.push({ side: knownSides.b, angle: knownAngles.B, ratio: null });
+        if (knownSides.c && knownAngles.C) sineLawPairs.push({ side: knownSides.c, angle: knownAngles.C, ratio: null });
+        
+        if (sineLawPairs.length >= 2) {
+            sineLawPairs.forEach(pair => {
+                pair.ratio = pair.side / Math.sin(pair.angle * Math.PI / 180);
+            });
+            
+            const ratios = sineLawPairs.map(p => p.ratio);
+            const maxRatio = Math.max(...ratios);
+            const minRatio = Math.min(...ratios);
+            const ratioError = (maxRatio - minRatio) / ((maxRatio + minRatio) / 2);
+            
+            if (ratioError > 0.1) {
+                const ratioStr = sineLawPairs.map(p => p.ratio.toFixed(3)).join(', ');
+                checks.push({
+                    type: 'error',
+                    message: `Нарушена теорема синусов. Отношения сторона/sin(угла) должны быть равны. Получено: ${ratioStr}`
+                });
+            }
+        }
+        
+        // 4. Проверка соотношений высот, медиан и биссектрис
+        const vertexChecks = [
+            { vertex: 'A', side: 'a', height: knownHeights.ha, median: knownMedians.ma, bisector: knownBisectors.la },
+            { vertex: 'B', side: 'b', height: knownHeights.hb, median: knownMedians.mb, bisector: knownBisectors.lb },
+            { vertex: 'C', side: 'c', height: knownHeights.hc, median: knownMedians.mc, bisector: knownBisectors.lc }
+        ];
+        
+        vertexChecks.forEach(check => {
+            const sideKey = `side${check.vertex === 'A' ? 'BC' : check.vertex === 'B' ? 'AC' : 'AB'}`;
+            const oppositeSide = params[sideKey];
+            
+            // Проверка высоты
+            if (check.height && oppositeSide) {
+                if (check.height > oppositeSide + ε) {
+                    checks.push({
+                        type: 'error',
+                        message: `Высота из вершины ${check.vertex} (${check.height.toFixed(3)}) не может быть больше противоположной стороны (${oppositeSide.toFixed(3)})`
+                    });
+                }
+                
+                // Высота должна быть положительной
+                if (check.height <= 0) {
+                    checks.push({
+                        type: 'error',
+                        message: `Высота из вершины ${check.vertex} (${check.height.toFixed(3)}) должна быть положительной`
+                    });
+                }
+            }
+            
+            // КРИТИЧЕСКАЯ ПРОВЕРКА: Медиана не может быть меньше высоты из той же вершины
+            if (check.median && check.height) {
+                if (check.median < check.height - ε) {
+                    checks.push({
+                        type: 'error',
+                        message: `Медиана из вершины ${check.vertex} (${check.median.toFixed(3)}) не может быть меньше высоты из той же вершины (${check.height.toFixed(3)}). В треугольнике медиана всегда ≥ высоты из той же вершины.`
+                    });
+                }
+            }
+            
+            // КРИТИЧЕСКАЯ ПРОВЕРКА: Биссектриса не может быть меньше высоты из той же вершины
+            if (check.bisector && check.height) {
+                if (check.bisector < check.height - ε) {
+                    checks.push({
+                        type: 'error',
+                        message: `Биссектриса из вершины ${check.vertex} (${check.bisector.toFixed(3)}) не может быть меньше высоты из той же вершины (${check.height.toFixed(3)}). В треугольнике биссектриса всегда ≥ высоты из той же вершины.`
+                    });
+                }
+            }
+            
+            // Проверка: Медиана не может превышать полусумму двух других сторон
+            if (check.median && knownSides.b && knownSides.c && check.vertex === 'A') {
+                const maxMedian = 0.5 * (knownSides.b + knownSides.c);
+                if (check.median > maxMedian + ε) {
+                    checks.push({
+                        type: 'error',
+                        message: `Медиана из вершины A (${check.median.toFixed(3)}) не может превышать полусумму сторон b и c (${maxMedian.toFixed(3)})`
+                    });
+                }
+            }
+            if (check.median && knownSides.a && knownSides.c && check.vertex === 'B') {
+                const maxMedian = 0.5 * (knownSides.a + knownSides.c);
+                if (check.median > maxMedian + ε) {
+                    checks.push({
+                        type: 'error',
+                        message: `Медиана из вершины B (${check.median.toFixed(3)}) не может превышать полусумму сторон a и c (${maxMedian.toFixed(3)})`
+                });
+                }
+            }
+            if (check.median && knownSides.a && knownSides.b && check.vertex === 'C') {
+                const maxMedian = 0.5 * (knownSides.a + knownSides.b);
+                if (check.median > maxMedian + ε) {
+                    checks.push({
+                        type: 'error',
+                        message: `Медиана из вершины C (${check.median.toFixed(3)}) не может превышать полусумму сторон a и b (${maxMedian.toFixed(3)})`
+                    });
+                }
+            }
+        });
+        
+        // 5. Проверка радиусов окружностей
+        if (params.inradius && params.circumradius) {
+            if (params.inradius > params.circumradius) {
+                checks.push({
+                    type: 'error',
+                    message: `Радиус вписанной окружности (${params.inradius.toFixed(3)}) не может быть больше радиуса описанной (${params.circumradius.toFixed(3)})`
+                });
+            }
+            
+            // Для остроугольного треугольника: R ≥ 2r
+            if (params.inradius > 0 && params.circumradius > 0) {
+                if (params.circumradius < 2 * params.inradius) {
+                    // Проверим, не является ли треугольник тупоугольным
+                    let isObtuse = false;
+                    if (params.angleA > 90 || params.angleB > 90 || params.angleC > 90) {
+                        isObtuse = true;
+                    }
+                    
+                    if (!isObtuse) {
+                        checks.push({
+                            type: 'warning',
+                            message: `Для остроугольного треугольника R ≥ 2r. У вас R=${params.circumradius.toFixed(3)}, r=${params.inradius.toFixed(3)}`
+                        });
+                    }
+                }
+            }
+        }
+        
+        // 6. Проверка площади
+        if (params.area) {
+            if (params.area <= 0) {
+                checks.push({
+                    type: 'error',
+                    message: `Площадь (${params.area.toFixed(3)}) должна быть положительной`
+                });
+            }
+            
+            // Если заданы стороны, проверяем формулу Герона
+            if (params.sideAB && params.sideBC && params.sideAC) {
+                const a = params.sideBC;
+                const b = params.sideAC;
+                const c = params.sideAB;
+                const p = (a + b + c) / 2;
+                const heronArea = Math.sqrt(p * (p - a) * (p - b) * (p - c));
+                
+                if (heronArea > 0) {
+                    const areaError = Math.abs(params.area - heronArea) / params.area;
+                    if (areaError > 0.1) {
+                        checks.push({
+                            type: 'error',
+                            message: `Заданная площадь (${params.area.toFixed(3)}) не соответствует площади по формуле Герона (${heronArea.toFixed(3)})`
+                        });
+                    }
+                }
+            }
+        }
+        
+        // 7. Проверка теоремы косинусов
+        if (params.sideAB && params.sideBC && params.angleC) {
+            const c = params.sideAB;
+            const a = params.sideBC;
+            const γ = params.angleC * Math.PI / 180;
+            const b_calculated = Math.sqrt(a*a + c*c - 2*a*c*Math.cos(γ));
+            
+            if (params.sideAC && Math.abs(params.sideAC - b_calculated) / Math.max(params.sideAC, b_calculated) > 0.1) {
+                checks.push({
+                    type: 'error',
+                    message: `Сторона AC (${params.sideAC.toFixed(3)}) не соответствует теореме косинусов. Должна быть ≈ ${b_calculated.toFixed(3)}`
+                });
+            }
+        }
+        
+        if (params.sideBC && params.sideAC && params.angleA) {
+            const a = params.sideBC;
+            const b = params.sideAC;
+            const α = params.angleA * Math.PI / 180;
+            const c_calculated = Math.sqrt(a*a + b*b - 2*a*b*Math.cos(α));
+            
+            if (params.sideAB && Math.abs(params.sideAB - c_calculated) / Math.max(params.sideAB, c_calculated) > 0.1) {
+                checks.push({
+                    type: 'error',
+                    message: `Сторона AB (${params.sideAB.toFixed(3)}) не соответствует теореме косинусов. Должна быть ≈ ${c_calculated.toFixed(3)}`
+                });
+            }
+        }
+        
+        if (params.sideAB && params.sideAC && params.angleB) {
+            const c = params.sideAB;
+            const b = params.sideAC;
+            const β = params.angleB * Math.PI / 180;
+            const a_calculated = Math.sqrt(b*b + c*c - 2*b*c*Math.cos(β));
+            
+            if (params.sideBC && Math.abs(params.sideBC - a_calculated) / Math.max(params.sideBC, a_calculated) > 0.1) {
+                checks.push({
+                    type: 'error',
+                    message: `Сторона BC (${params.sideBC.toFixed(3)}) не соответствует теореме косинусов. Должна быть ≈ ${a_calculated.toFixed(3)}`
+                });
+            }
+        }
+        
+        // 8. Проверка на вырожденный треугольник
+        if (definedAngles.length === 3) {
+            if (params.angleA < 1 || params.angleB < 1 || params.angleC < 1) {
+                checks.push({
+                    type: 'warning',
+                    message: 'Углы слишком малы (< 1°), треугольник почти вырожденный'
+                });
+            }
+            
+            if (params.angleA > 179 || params.angleB > 179 || params.angleC > 179) {
+                checks.push({
+                    type: 'warning',
+                    message: 'Углы слишком близки к 180°, треугольник почти вырожденный'
+                });
+            }
+        }
+        
+        // 9. Дополнительные проверки для специальных случаев
+        if (params.circumradius && params.inradius) {
+            // Для равностороннего треугольника: R = 2r
+            const ratio = params.circumradius / params.inradius;
+            if (Math.abs(ratio - 2) < 0.01) {
+                // Проверим, действительно ли это равносторонний треугольник
+                if (params.angleA && params.angleB && params.angleC) {
+                    const isEquilateral = Math.abs(params.angleA - 60) < 1 && 
+                                         Math.abs(params.angleB - 60) < 1 && 
+                                         Math.abs(params.angleC - 60) < 1;
+                    if (!isEquilateral) {
+                        checks.push({
+                            type: 'warning',
+                            message: `Отношение R/r ≈ 2 характерно для равностороннего треугольника, но заданные углы не равны 60°`
+                        });
+                    }
+                }
+            }
+        }
+        
+        // 10. Проверка на "невозможные" комбинации высот
+        if (knownHeights.ha && knownHeights.hb && knownHeights.hc) {
+            // Для треугольника должны выполняться неравенства:
+            // 1/hₐ + 1/hբ > 1/h𝒸 и т.д.
+            const invSumAB = 1/knownHeights.ha + 1/knownHeights.hb;
+            const invC = 1/knownHeights.hc;
+            
+            if (invSumAB <= invC + ε) {
+                checks.push({
+                    type: 'error',
+                    message: `Невыполнимое соотношение высот: 1/hₐ + 1/hբ > 1/h𝒸 не выполняется`
+                });
+            }
+        }
+        
+        return {
+            passed: !checks.some(c => c.type === 'error'),
+            warnings: checks.filter(c => c.type === 'warning'),
+            errors: checks.filter(c => c.type === 'error'),
+            allChecks: checks
+        };
+    }
+    
+    // ========== ПРОВЕРКА ПРАКТИЧЕСКОЙ РЕАЛИЗУЕМОСТИ ==========
+    function checkPracticalFeasibility(params) {
+      const ε = 0.1; // Порог численной стабильности
+      const warnings = [];
+      const errors = [];
+      
+      // Проверка на почти вырожденные углы
+      ['angleA', 'angleB', 'angleC'].forEach(angleKey => {
+        if (params[angleKey]) {
+          const angle = params[angleKey];
+          if (angle < ε) {
+            errors.push(`Угол ${angleKey.replace('angle', '')} (${angle.toFixed(2)}°) слишком мал (<${ε}°)`);
+          } else if (angle > 180 - ε) {
+            errors.push(`Угол ${angleKey.replace('angle', '')} (${angle.toFixed(2)}°) слишком близок к 180°`);
+          } else if (angle < 1) {
+            warnings.push(`Угол ${angleKey.replace('angle', '')} (${angle.toFixed(2)}°) очень мал, возможны численные ошибки`);
+          } else if (angle > 179) {
+            warnings.push(`Угол ${angleKey.replace('angle', '')} (${angle.toFixed(2)}°) очень близок к 180°, возможны численные ошибки`);
+          }
+        }
+      });
+      
+      // Проверка на слишком экстремальные соотношения
+      if (params.inradius && params.circumradius) {
+        const ratio = params.inradius / params.circumradius;
+        if (ratio > 0.9) {
+          warnings.push(`Отношение r/R (${ratio.toFixed(3)}) слишком близко к 1, треугольник почти вырожденный`);
+        }
+        if (ratio < 0.001) {
+          warnings.push(`Отношение r/R (${ratio.toFixed(6)}) слишком мало, возможны численные ошибки`);
+        }
+      }
+      
+      // Проверка соотношений сторон
+      if (params.sideAB && params.sideBC && params.sideAC) {
+        const sides = [params.sideBC, params.sideAC, params.sideAB];
+        const maxSide = Math.max(...sides);
+        const minSide = Math.min(...sides);
+        const ratio = maxSide / minSide;
+        
+        if (ratio > 100) {
+          warnings.push(`Соотношение сторон слишком большое (${ratio.toFixed(1)}:1), возможны численные ошибки`);
+        } else if (ratio > 50) {
+          warnings.push(`Соотношение сторон очень большое (${ratio.toFixed(1)}:1)`);
+        }
+      }
+      
+      // Проверка на очень маленькие значения
+      Object.entries(params).forEach(([key, value]) => {
+        if (value && Math.abs(value) < 1e-6 && !key.includes('angle')) {
+          warnings.push(`Параметр ${getParameterName(key)} (${value.toExponential(2)}) слишком мал для точных вычислений`);
+        }
+        
+        if (value && Math.abs(value) > 1e6) {
+          warnings.push(`Параметр ${getParameterName(key)} (${value.toExponential(2)}) очень большой для точных вычислений`);
+        }
+      });
+      
+      return {
+        feasible: errors.length === 0,
+        errors: errors,
+        warnings: warnings,
+        allIssues: [...errors, ...warnings]
+      };
+    }
+    
+    // ========== АДАПТИВНАЯ СКОРОСТЬ ОБУЧЕНИЯ ==========
+    function adaptiveLearningRate(error, iteration, hasStagnated = false) {
+      // Базовые настройки
+      const baseLR = 0.02;
+      const minLR = 0.0001;
+      const maxLR = 0.1;
+      
+      // Экспоненциальный спад
+      const decayFactor = Math.exp(-iteration / 2000);
+      
+      // Адаптация по ошибке
+      let adaptiveFactor = 1.0;
+      
+      if (error > 1.0) {
+        // Для больших ошибок - медленнее, чтобы избежать осцилляций
+        adaptiveFactor = 0.5;
+      } else if (error < 0.01) {
+        // Для малых ошибок - точная настройка
+        adaptiveFactor = 0.2;
+      } else if (error < 0.1) {
+        adaptiveFactor = 0.5;
+      }
+      
+      // Замедление при застое
+      if (hasStagnated) {
+        adaptiveFactor *= 0.3;
+      }
+      
+      // Комбинированная скорость
+      let lr = baseLR * decayFactor * adaptiveFactor;
+      
+      // Ограничение
+      lr = Math.max(minLR, Math.min(maxLR, lr));
+      
+      return lr;
+    }
+    
+    // ========== ПРОВЕРКА ЧИСЛЕННОЙ УСТОЙЧИВОСТИ ==========
+    function checkNumericalFeasibility(params) {
+      const issues = [];
+      
+      // Проверка на NaN и бесконечности
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (isNaN(value)) {
+            issues.push(`Параметр ${getParameterName(key)} содержит NaN`);
+          }
+          if (!isFinite(value)) {
+            issues.push(`Параметр ${getParameterName(key)} содержит бесконечное значение`);
+          }
+        }
+      });
+      
+      // Проверка условий для численной стабильности
+      const definedAngles = [];
+      let anglesSum = 0;
+      
+      if (params.angleA) {
+        definedAngles.push('A');
+        anglesSum += params.angleA;
+      }
+      if (params.angleB) {
+        definedAngles.push('B');
+        anglesSum += params.angleB;
+      }
+      if (params.angleC) {
+        definedAngles.push('C');
+        anglesSum += params.angleC;
+      }
+      
+      if (definedAngles.length === 3) {
+        const angleError = Math.abs(anglesSum - 180);
+        if (angleError > 0.1) {
+          issues.push(`Сумма углов (${anglesSum.toFixed(2)}°) значительно отличается от 180° (ошибка: ${angleError.toFixed(2)}°)`);
+        }
+      }
+      
+      // Проверка на практически вырожденный треугольник
+      if (params.angleA && params.angleB && params.angleC) {
+        const minAngle = Math.min(params.angleA, params.angleB, params.angleC);
+        const maxAngle = Math.max(params.angleA, params.angleB, params.angleC);
+        
+        if (minAngle < 0.1) {
+          issues.push(`Минимальный угол (${minAngle.toFixed(2)}°) слишком мал для численной стабильности`);
+        }
+        
+        if (maxAngle > 179.9) {
+          issues.push(`Максимальный угол (${maxAngle.toFixed(2)}°) слишком близок к 180°`);
+        }
+        
+        // Проверка на почти прямолинейный треугольник
+        if (anglesSum > 179.9 && anglesSum < 180.1) {
+          if (maxAngle > 179.5 || minAngle < 0.5) {
+            issues.push("Треугольник практически вырожденный (один угол очень близок к 180°)");
+          }
+        }
+      }
+      
+      return {
+        feasible: issues.length === 0,
+        issues: issues
+      };
+    }
+    
+    // ========== ФУНКЦИЯ ДЛЯ ПРЕДВАРИТЕЛЬНОЙ ПРОВЕРКИ ==========
+    function preValidateParametersEnhanced(params) {
+      // Базовая проверка совместимости
+      const compatibility = checkParameterCompatibility(params);
+      
+      if (!compatibility.passed) {
+        const errorMessages = compatibility.errors.map(e => e.message).join('\n• ');
+        return {
+          valid: false,
+          message: `Параметры несовместимы:\n• ${errorMessages}`
+        };
+      }
+      
+      // Проверка практической реализуемости
+      const practicalCheck = checkPracticalFeasibility(params);
+      if (!practicalCheck.feasible) {
+        const errorMessages = practicalCheck.errors.join('\n• ');
+        return {
+          valid: false,
+          message: `Параметры нереализуемы на практике:\n• ${errorMessages}`
+        };
+      }
+      
+      // Проверка численной стабильности
+      const numericalCheck = checkNumericalFeasibility(params);
+      if (!numericalCheck.feasible) {
+        const errorMessages = numericalCheck.issues.join('\n• ');
+        return {
+          valid: false,
+          message: `Параметры численно нестабильны:\n• ${errorMessages}`
+        };
+      }
+      
+      // Проверка на "заведомо нерешаемые" комбинации
+      const vertexChecks = [
+        { v: 'A', h: params.altitudeA, m: params.medianA, b: params.bisectorA },
+        { v: 'B', h: params.altitudeB, m: params.medianB, b: params.bisectorB },
+        { v: 'C', h: params.altitudeC, m: params.medianC, b: params.bisectorC }
+      ];
+      
+      for (const check of vertexChecks) {
+        // Если медиана задана и меньше высоты
+        if (check.m && check.h && check.m < check.h) {
+          return {
+            valid: false,
+            message: `Медиана из вершины ${check.v} (${check.m.toFixed(3)}) меньше высоты (${check.h.toFixed(3)}). Это невозможно в треугольнике.`
+          };
+        }
+        
+        // Если биссектриса задана и меньше высоты
+        if (check.b && check.h && check.b < check.h) {
+          return {
+            valid: false,
+            message: `Биссектриса из вершины ${check.v} (${check.b.toFixed(3)}) меньше высоты (${check.h.toFixed(3)}). Это невозможно в треугольнике.`
+          };
+        }
+      }
+      
+      // Проверка на слишком большие/маленькие значения
+      const maxReasonableValue = 1e6;
+      const minReasonableValue = 1e-6;
+      
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined) {
+          if (Math.abs(value) > maxReasonableValue) {
+            return {
+              valid: false,
+              message: `Параметр ${getParameterName(key)} (${value.toExponential(2)}) слишком большой для численной стабильности`
+            };
+          }
+          
+          if (Math.abs(value) < minReasonableValue && !key.includes('angle')) {
+            return {
+              valid: false,
+              message: `Параметр ${getParameterName(key)} (${value.toExponential(2)}) слишком мал для численной стабильности`
+            };
+          }
+        }
+      }
+      
+      // Показать предупреждения если есть
+      const allWarnings = [
+        ...compatibility.warnings.map(w => w.message),
+        ...practicalCheck.warnings,
+        ...numericalCheck.issues.filter(issue => !issue.includes('ошибка') && !issue.includes('нестабильны'))
+      ];
+      
+      if (allWarnings.length > 0) {
+        return {
+          valid: true,
+          message: 'Параметры прошли проверку',
+          warnings: allWarnings
+        };
+      }
+      
+      return {
+        valid: true,
+        message: 'Параметры прошли проверку'
+      };
+    }
+    
+    // ========== ОТОБРАЖЕНИЕ СООБЩЕНИЙ (ОСТАЮТСЯ В ИНТЕРФЕЙСЕ) ==========
+    function showErrorMessage(message, persist = false) {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.innerHTML = `
+        <div style="display: flex; align-items: flex-start; gap: 10px;">
+          <span style="font-size: 20px; color: #e74c3c;">❌</span>
+          <div style="flex: 1;">
+            <strong style="color: #e74c3c;">Ошибка:</strong>
+            <div style="white-space: pre-line; margin-top: 5px;">${message}</div>
+          </div>
+          ${persist ? '<button onclick="hideErrorMessage()" style="background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 18px;">×</button>' : ''}
+        </div>
+      `;
+      errorDiv.classList.remove('hidden');
+      
+      // Если сообщение не должно сохраняться, скрываем через 10 секунд
+      if (!persist) {
+        setTimeout(hideErrorMessage, 10000);
+      }
+    }
+    
+    function hideErrorMessage() {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.classList.add('hidden');
+      errorDiv.innerHTML = '';
+    }
+    
+    function showStatusMessage(message, type = 'info') {
+      currentStatusMessages.push({ message, type, timestamp: Date.now() });
+      updateStatusPanel();
+    }
+    
+    function updateStatusPanel() {
+      const panel = document.getElementById('statusPanel');
+      const messagesDiv = document.getElementById('statusMessages');
+      const inlinePanel = document.getElementById('statusMessagesInline');
+      const inlineContent = document.getElementById('inlineStatusContent');
+      
+      if (!messagesDiv || !inlineContent) return;
+      
+      // Очищаем старые сообщения (старше 5 минут)
+      const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+      currentStatusMessages = currentStatusMessages.filter(msg => msg.timestamp > fiveMinutesAgo);
+      
+      if (currentStatusMessages.length === 0) {
+        panel.style.display = 'none';
+        inlinePanel.style.display = 'none';
+        return;
+      }
+      
+      // Сортируем по типу (ошибки вверху)
+      currentStatusMessages.sort((a, b) => {
+        const typeOrder = { 'error': 0, 'warning': 1, 'info': 2, 'success': 3 };
+        return (typeOrder[a.type] || 3) - (typeOrder[b.type] || 3);
+      });
+      
+      // Отображаем сообщения
+      messagesDiv.innerHTML = '';
+      inlineContent.innerHTML = '';
+      
+      const icons = {
+        'error': '❌',
+        'warning': '⚠️',
+        'info': 'ℹ️',
+        'success': '✅'
+      };
+      
+      currentStatusMessages.forEach(msg => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `status-message status-${msg.type}`;
+        
+        const icon = icons[msg.type] || 'ℹ️';
+        const timeAgo = Math.floor((Date.now() - msg.timestamp) / 1000);
+        const timeText = timeAgo < 60 ? `${timeAgo} сек назад` : 
+                        timeAgo < 3600 ? `${Math.floor(timeAgo/60)} мин назад` : 
+                        `${Math.floor(timeAgo/3600)} ч назад`;
+        
+        messageDiv.innerHTML = `
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <span style="font-size: 16px;">${icon}</span>
+            <div style="flex: 1;">
+              <div style="white-space: pre-line;">${msg.message}</div>
+              <div style="font-size: 10px; color: #666; margin-top: 3px;">${timeText}</div>
+            </div>
+            <button onclick="removeStatusMessage(${msg.timestamp})" style="background: none; border: none; color: #666; cursor: pointer; font-size: 14px;">×</button>
+          </div>
+        `;
+        
+        messagesDiv.appendChild(messageDiv.cloneNode(true));
+        inlineContent.appendChild(messageDiv);
+      });
+      
+      panel.style.display = 'block';
+      inlinePanel.style.display = 'block';
+    }
+    
+    function removeStatusMessage(timestamp) {
+      currentStatusMessages = currentStatusMessages.filter(msg => msg.timestamp !== timestamp);
+      updateStatusPanel();
+    }
+    
+    function clearStatusMessages() {
+      currentStatusMessages = [];
+      updateStatusPanel();
+    }
+    
+    // ========== УЛУЧШЕННЫЙ ОПТИМИЗАТОР ==========
+    async function optimizeTriangleWithScaleEnhanced(targetParams, progressCallback) {
+      return new Promise((resolve, reject) => {
+        try {
+          // ПРОВЕРКА ЧИСЛЕННОЙ СТАБИЛЬНОСТИ ПЕРЕД НАЧАЛОМ
+          const numericalCheck = checkNumericalFeasibility(targetParams);
+          if (!numericalCheck.feasible) {
+            reject(new Error(`Параметры численно нестабильны:\n• ${numericalCheck.issues.join('\n• ')}`));
+            return;
+          }
+          
+          // ПРОВЕРКА ПРАКТИЧЕСКОЙ РЕАЛИЗУЕМОСТИ
+          const practicalCheck = checkPracticalFeasibility(targetParams);
+          if (!practicalCheck.feasible) {
+            reject(new Error(`Параметры нереализуемы на практике:\n• ${practicalCheck.errors.join('\n• ')}`));
+            return;
+          }
+          
+          // Показать предупреждения если есть
+          if (practicalCheck.warnings.length > 0) {
+            practicalCheck.warnings.forEach(warning => {
+              showStatusMessage(warning, 'warning');
+            });
+          }
+          
+          const MAX_ITERATIONS = 8000;
+          const TARGET_ERROR = 1e-12;
+          
+          let bestSolution = null;
+          let bestError = Infinity;
+          let stagnationCounter = 0;
+          let lastImprovement = 0;
+          
+          // Определяем, задан ли радиус описанной окружности
+          const hasCircumradius = targetParams.circumradius !== undefined;
+          
+          // Если задан радиус, используем его как начальный масштаб
+          let initialScale = 1.0;
+          if (hasCircumradius) {
+            initialScale = Math.max(0.1, Math.min(10.0, targetParams.circumradius));
+          }
+          
+          // РАЗНООБРАЗНЫЕ НАЧАЛЬНЫЕ ТОЧКИ ДЛЯ ПОИСКА
+          const initialPoints = [
+            // Базовые точки
+            {α: Math.PI/3, β: Math.PI/3, scale: initialScale}, // Равносторонний
+            {α: Math.PI/2, β: Math.PI/4, scale: initialScale}, // Прямоугольный
+            {α: Math.PI*0.4, β: Math.PI*0.4, scale: initialScale}, // Остроугольный
+            {α: Math.PI*0.2, β: Math.PI*0.3, scale: initialScale}, // Разносторонний
+            
+            // Дополнительные точки для сложных случаев
+            {α: Math.PI*0.7, β: Math.PI*0.2, scale: initialScale}, // Тупоугольный
+            {α: Math.PI*0.1, β: Math.PI*0.1, scale: initialScale}, // Очень острый
+            {α: Math.PI*0.8, β: Math.PI*0.1, scale: initialScale}, // Очень тупой
+            
+            // Случайные точки для глобального поиска
+            ...Array(3).fill(0).map(() => ({
+              α: 0.1 + Math.random() * (Math.PI - 0.2),
+              β: 0.1 + Math.random() * (Math.PI - 0.2),
+              scale: initialScale * (0.5 + Math.random())
+            }))
+          ];
+          
+          let completedRuns = 0;
+          let totalIterations = 0;
+          
+          initialPoints.forEach((initialPoint, runIndex) => {
+            setTimeout(() => {
+              try {
+                let α = initialPoint.α;
+                let β = initialPoint.β;
+                let scale = initialPoint.scale;
+                
+                let localBestError = Infinity;
+                let localBestSolution = null;
+                let localStagnation = 0;
+                
+                function optimizationStep(iteration) {
+                  if (totalIterations >= MAX_ITERATIONS) {
+                    completedRuns++;
+                    checkAllRunsCompleted();
+                    return;
+                  }
+                  
+                  totalIterations++;
+                  
+                  try {
+                    // Ограничиваем углы с запасом
+                    α = Math.max(0.005, Math.min(Math.PI - 0.01, α));
+                    β = Math.max(0.005, Math.min(Math.PI - α - 0.005, β));
+                    
+                    const γ = Math.PI - α - β;
+                    
+                    if (γ < 0.005 || γ > Math.PI - 0.005) {
+                      // Перезапуск с новой случайной точки
+                      α = 0.1 + Math.random() * (Math.PI - 0.2);
+                      β = 0.1 + Math.random() * (Math.PI - α - 0.1);
+                      setTimeout(() => optimizationStep(iteration), 0);
+                      return;
+                    }
+                    
+                    // Вычисляем параметры с текущим масштабом
+                    const currentParams = calculateAllParamsFromAngles(α, β, scale);
+                    
+                    // Вычисляем ошибку
+                    let error = calculateErrorWithScale(currentParams, targetParams);
+                    
+                    // Если задан радиус описанной, добавляем дополнительный вес к ошибке
+                    if (hasCircumradius) {
+                      const targetR = targetParams.circumradius;
+                      const circumError = Math.abs(scale - targetR) / Math.max(0.1, targetR);
+                      error += circumError * 3.0;
+                    }
+                    
+                    // Проверка на улучшение
+                    if (error < localBestError) {
+                      localBestError = error;
+                      localBestSolution = {
+                        points: calculateTrianglePoints(α, β, scale),
+                        params: currentParams,
+                        scale: scale,
+                        angles: {
+                          α: α * 180 / Math.PI,
+                          β: β * 180 / Math.PI,
+                          γ: γ * 180 / Math.PI
+                        },
+                        type: determineTriangleType(currentParams),
+                        error: error,
+                        iterations: totalIterations
+                      };
+                      localStagnation = 0;
+                      
+                      // Обновляем глобальное лучшее решение
+                      if (error < bestError) {
+                        bestError = error;
+                        bestSolution = localBestSolution;
+                        stagnationCounter = 0;
+                        lastImprovement = totalIterations;
+                      }
+                    } else {
+                      localStagnation++;
+                    }
+                    
+                    // Проверка на застой в локальном поиске
+                    if (localStagnation > 100) {
+                      completedRuns++;
+                      checkAllRunsCompleted();
+                      return;
+                    }
+                    
+                    // Проверка на глобальный застой
+                    if (totalIterations - lastImprovement > 1000) {
+                      stagnationCounter++;
+                      if (stagnationCounter > 3) {
+                        completedRuns = initialPoints.length;
+                        checkAllRunsCompleted();
+                        return;
+                      }
+                    }
+                    
+                    // Обновляем прогресс
+                    const progress = Math.min(100, (totalIterations / MAX_ITERATIONS) * 100);
+                    progressCallback(progress, totalIterations, error);
+                    
+                    // КРИТЕРИЙ ОСТАНОВА
+                    if (error < TARGET_ERROR) {
+                      bestError = error;
+                      bestSolution = localBestSolution;
+                      completedRuns = initialPoints.length;
+                      checkAllRunsCompleted();
+                      return;
+                    }
+                    
+                    // Определяем, есть ли застой
+                    const hasStagnated = localStagnation > 20;
+                    
+                    // Вычисляем адаптивную скорость обучения
+                    const currentLR = adaptiveLearningRate(error, iteration, hasStagnated);
+                    
+                    // Вычисляем градиенты с центральными разностями
+                    const delta = 1e-6;
+                    
+                    // Градиент для α
+                    const αPlus = calculateAllParamsFromAngles(α + delta, β, scale);
+                    const αMinus = calculateAllParamsFromAngles(α - delta, β, scale);
+                    const errorαPlus = calculateErrorWithScale(αPlus, targetParams);
+                    const errorαMinus = calculateErrorWithScale(αMinus, targetParams);
+                    const gradα = (errorαPlus - errorαMinus) / (2 * delta);
+                    
+                    // Градиент для β
+                    const βPlus = calculateAllParamsFromAngles(α, β + delta, scale);
+                    const βMinus = calculateAllParamsFromAngles(α, β - delta, scale);
+                    const errorβPlus = calculateErrorWithScale(βPlus, targetParams);
+                    const errorβMinus = calculateErrorWithScale(βMinus, targetParams);
+                    const gradβ = (errorβPlus - errorβMinus) / (2 * delta);
+                    
+                    // Градиент для масштаба
+                    let gradScale = 0;
+                    if (hasCircumradius) {
+                      const targetR = targetParams.circumradius;
+                      const scaleDiff = scale - targetR;
+                      gradScale = scaleDiff / (Math.abs(targetR) + 1e-10);
+                      
+                      const scalePlus = calculateAllParamsFromAngles(α, β, scale + delta);
+                      const scaleMinus = calculateAllParamsFromAngles(α, β, scale - delta);
+                      const errorScalePlus = calculateErrorWithScale(scalePlus, targetParams);
+                      const errorScaleMinus = calculateErrorWithScale(scaleMinus, targetParams);
+                      const numericGrad = (errorScalePlus - errorScaleMinus) / (2 * delta);
+                      gradScale += numericGrad * 0.5;
+                    } else {
+                      const scalePlus = calculateAllParamsFromAngles(α, β, scale + delta);
+                      const scaleMinus = calculateAllParamsFromAngles(α, β, scale - delta);
+                      const errorScalePlus = calculateErrorWithScale(scalePlus, targetParams);
+                      const errorScaleMinus = calculateErrorWithScale(scaleMinus, targetParams);
+                      gradScale = (errorScalePlus - errorScaleMinus) / (2 * delta);
+                    }
+                    
+                    // Применяем моментум для стабилизации
+                    let momentumα = 0;
+                    let momentumβ = 0;
+                    let momentumScale = 0;
+                    const momentumFactor = 0.9;
+                    
+                    // Обновляем параметры с моментумом
+                    momentumα = momentumFactor * momentumα + currentLR * gradα;
+                    momentumβ = momentumFactor * momentumβ + currentLR * gradβ;
+                    momentumScale = momentumFactor * momentumScale + currentLR * gradScale;
+                    
+                    α -= momentumα;
+                    β -= momentumβ;
+                    scale -= momentumScale;
+                    
+                    // Ограничиваем значения
+                    α = Math.max(0.005, Math.min(Math.PI - 0.01, α));
+                    β = Math.max(0.005, Math.min(Math.PI - α - 0.005, β));
+                    
+                    if (hasCircumradius) {
+                      const targetR = targetParams.circumradius;
+                      // Мягкая регуляризация к целевому радиусу
+                      scale = scale * 0.9 + targetR * 0.1;
+                    }
+                    
+                    scale = Math.max(0.001, Math.min(100.0, scale));
+                    
+                    // Следующая итерация
+                    setTimeout(() => optimizationStep(iteration + 1), 0);
+                    
+                  } catch (error) {
+                    console.warn('Ошибка в шаге оптимизации:', error);
+                    completedRuns++;
+                    checkAllRunsCompleted();
+                  }
+                }
+                
+                optimizationStep(0);
+                
+              } catch (error) {
+                console.warn('Ошибка в запуске оптимизации:', error);
+                completedRuns++;
+                checkAllRunsCompleted();
+              }
+            }, runIndex * 50);
+          });
+          
+          function checkAllRunsCompleted() {
+            if (completedRuns >= initialPoints.length) {
+              if (bestSolution && bestError < 0.05) {
+                // Корректируем финальное решение, если задан радиус
+                if (hasCircumradius) {
+                  const targetR = targetParams.circumradius;
+                  const α = bestSolution.angles.α * Math.PI / 180;
+                  const β = bestSolution.angles.β * Math.PI / 180;
+                  
+                  bestSolution.params = calculateAllParamsFromAngles(α, β, targetR);
+                  bestSolution.points = calculateTrianglePoints(α, β, targetR);
+                  bestSolution.scale = targetR;
+                  bestSolution.error = calculateErrorWithScale(bestSolution.params, targetParams);
+                }
+                
+                // Дополнительная тонкая настройка
+                bestSolution = fineTuneSolution(bestSolution, targetParams);
+                
+                resolve(bestSolution);
+              } else {
+                reject(new Error(`Решение не найдено. Лучшая ошибка: ${bestError.toFixed(6)}. Возможно, параметры несовместимы или требуют более точного решения.`));
+              }
+            }
+          }
+          
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+    
+    function calculateErrorWithScale(currentParams, targetParams) {
+      let totalError = 0;
+      let weight = 0;
+      const ε = 1e-10;
+      
+      for (const [key, targetValue] of Object.entries(targetParams)) {
+        const currentValue = parseFloat(currentParams[key]);
+        
+        if (isNaN(currentValue)) {
+          totalError += 1.0;
+          weight += 1;
+          continue;
+        }
+        
+        let error;
+        
+        if (key.includes('angle')) {
+          const diff = Math.abs(currentValue - targetValue);
+          error = Math.min(diff, 360 - diff) / 180.0;
+        } else if (key === 'circumradius') {
+          const denominator = Math.max(Math.abs(targetValue), ε);
+          error = Math.abs((currentValue - targetValue) / denominator);
+        } else {
+          const denominator = Math.max(Math.abs(targetValue), ε);
+          error = Math.abs((currentValue - targetValue) / denominator);
+        }
+        
+        const paramWeight = key.includes('angle') ? 2.0 : 
+                           key === 'circumradius' ? 4.0 : 1.0;
+        totalError += error * paramWeight;
+        weight += paramWeight;
+      }
+      
+      return weight > 0 ? totalError / weight : Infinity;
+    }
+    
+    // ========== ФУНКЦИЯ ТОНКОЙ НАСТРОЙКИ РЕШЕНИЯ ==========
+    function fineTuneSolution(solution, targetParams) {
+      if (!solution || solution.error < 1e-6) return solution;
+      
+      const MAX_FINE_TUNE_ITERATIONS = 1000;
+      const FINE_TUNE_LR = 0.001;
+      
+      let α = solution.angles.α * Math.PI / 180;
+      let β = solution.angles.β * Math.PI / 180;
+      let scale = solution.scale;
+      
+      for (let i = 0; i < MAX_FINE_TUNE_ITERATIONS; i++) {
+        // Ограничиваем углы
+        α = Math.max(0.01, Math.min(Math.PI - 0.02, α));
+        β = Math.max(0.01, Math.min(Math.PI - α - 0.01, β));
+        
+        const currentParams = calculateAllParamsFromAngles(α, β, scale);
+        const error = calculateErrorWithScale(currentParams, targetParams);
+        
+        if (error < solution.error) {
+          solution = {
+            points: calculateTrianglePoints(α, β, scale),
+            params: currentParams,
+            scale: scale,
+            angles: {
+              α: α * 180 / Math.PI,
+              β: β * 180 / Math.PI,
+              γ: (Math.PI - α - β) * 180 / Math.PI
+            },
+            type: determineTriangleType(currentParams),
+            error: error,
+            iterations: solution.iterations + i + 1
+          };
+        }
+        
+        if (error < 1e-8) break;
+        
+        // Градиенты для тонкой настройки
+        const delta = 1e-8;
+        
+        const αPlus = calculateAllParamsFromAngles(α + delta, β, scale);
+        const αMinus = calculateAllParamsFromAngles(α - delta, β, scale);
+        const errorαPlus = calculateErrorWithScale(αPlus, targetParams);
+        const errorαMinus = calculateErrorWithScale(αMinus, targetParams);
+        const gradα = (errorαPlus - errorαMinus) / (2 * delta);
+        
+        const βPlus = calculateAllParamsFromAngles(α, β + delta, scale);
+        const βMinus = calculateAllParamsFromAngles(α, β - delta, scale);
+        const errorβPlus = calculateErrorWithScale(βPlus, targetParams);
+        const errorβMinus = calculateErrorWithScale(βMinus, targetParams);
+        const gradβ = (errorβPlus - errorβMinus) / (2 * delta);
+        
+        α -= FINE_TUNE_LR * gradα;
+        β -= FINE_TUNE_LR * gradβ;
+      }
+      
+      return solution;
+    }
+    
+    // ========== ОСНОВНЫЕ ФУНКЦИИ ==========
+    function startSolvingEnhanced() {
+      if (isFindingAll) return;
+      closeSolutionsPanel();
+      hideCompatibilityPanel();
+      
+      if (!validateParameterSelection()) return;
+      
+      // УСОВЕРШЕНСТВАННАЯ ПРОВЕРКА СОВМЕСТИМОСТИ
+      const preCheck = preValidateParametersEnhanced(selectedParameters);
+      if (!preCheck.valid) {
+        showErrorMessage(preCheck.message, true);
+        clearSolutionOnInvalidParams();
+        return;
+      }
+      
+      // Показать предупреждения если есть
+      if (preCheck.warnings && preCheck.warnings.length > 0) {
+        preCheck.warnings.forEach(warning => {
+          showStatusMessage(warning, 'warning');
+        });
+      }
+      
+      const solveBtn = document.getElementById('solveBtn');
+      solveBtn.disabled = true;
+      solveBtn.textContent = 'Вычисление...';
+      
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      const statusText = document.getElementById('statusText');
+      
+      progressContainer.style.display = 'block';
+      progressText.textContent = 'Инициализация улучшенного оптимизатора...';
+      statusText.textContent = 'Оптимизация...';
+      statusText.style.color = '#f39c12';
+      
+      setTimeout(async () => {
+        try {
+          const solution = await optimizeTriangleWithScaleEnhanced(selectedParameters, (progress, iteration, error) => {
+            progressBar.style.width = progress + '%';
+            let status = 'Итерация';
+            if (error > 1.0) status = 'Глобальный поиск';
+            else if (error > 0.1) status = 'Локальная оптимизация';
+            else status = 'Тонкая настройка';
+            progressText.textContent = `${status}: ${iteration}, ошибка: ${error.toFixed(6)}`;
+          });
+          
+          displaySolution(solution);
+          
+        } catch (error) {
+          showErrorMessage(`Ошибка оптимизации: ${error.message}`, true);
+          clearSolutionOnInvalidParams();
+        } finally {
+          solveBtn.disabled = false;
+          solveBtn.textContent = 'Рассчитать';
+          progressText.textContent = 'Готово';
+          
+          setTimeout(() => {
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+          }, 2000);
+        }
+      }, 100);
+    }
+    
+    function initChart() {
+      const ctx = document.getElementById('triangleChart').getContext('2d');
+      
+      chart = new Chart(ctx, {
+        type: 'scatter',
+        data: { datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              min: -3.5, max: 3.5,
+              grid: { color: 'rgba(0,0,0,0.1)' },
+              title: { display: true, text: 'x' }
+            },
+            y: {
+              min: -3.5, max: 3.5,
+              grid: { color: 'rgba(0,0,0,0.1)' },
+              title: { display: true, text: 'y' }
+            }
+          },
+          plugins: {
+            legend: { 
+              display: true,
+              position: 'top',
+              labels: { font: { size: 10 }, boxWidth: 12 }
+            },
+            tooltip: { enabled: true }
+          }
+        }
+      });
+      
+      applyTriangleYscale();
+    }
+    
+    let triYscale = parseFloat(localStorage.getItem("triangle_yScale") || "100");
+    const triBaseYmin = -3.5;
+    const triBaseYmax = 3.5;
+
+    function applyTriangleYscale() {
+      if (!chart) return;
+      const k = triYscale / 100;
+      chart.options.scales.y.min = triBaseYmin * k;
+      chart.options.scales.y.max = triBaseYmax * k;
+      chart.update();
+    }
+
+    function initVerticalScaleControl() {
+      const slider = document.getElementById("yScale");
+      const label = document.getElementById("yScaleLabel");
+      if (!slider || !label) return;
+      
+      slider.value = triYscale;
+      label.textContent = triYscale + "%";
+      
+      slider.addEventListener("input", () => {
+        triYscale = parseFloat(slider.value);
+        label.textContent = triYscale + "%";
+        localStorage.setItem("triangle_yScale", triYscale);
+        applyTriangleYscale();
+      });
+    }
+    
+    function generateCirclePoints(radius, points = 100) {
+      const circlePoints = [];
+      for (let i = 0; i <= points; i++) {
+        const angle = (i / points) * 2 * Math.PI;
+        circlePoints.push({
+          x: radius * Math.cos(angle),
+          y: radius * Math.sin(angle)
+        });
+      }
+      return circlePoints;
+    }
+    
+    function setupEventListeners() {
+      ['value1', 'value2', 'value3'].forEach(id => {
+        const input = document.getElementById(id);
+        
+        input.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter' && !document.getElementById('solveBtn').disabled) {
+            startSolvingEnhanced();
+          }
+        });
+        
+        input.addEventListener('blur', function() {
+          const index = parseInt(id.replace('value', ''));
+          const paramKey = document.getElementById(`param${index}`).value;
+          
+          if (!paramKey) return;
+          
+          const range = paramRanges[paramKey];
+          if (!range) return;
+          
+          const value = parseFloat(this.value);
+          if (isNaN(value)) return;
+          
+          const clampedValue = Math.max(range.min, Math.min(range.max, value));
+          
+          if (Math.abs(value - clampedValue) > 0.001) {
+            if (paramKey.includes('angle')) {
+              this.value = clampedValue.toFixed(1);
+            } else {
+              this.value = clampedValue.toFixed(3);
+            }
+          }
+          
+          updateSliderFromInput(index, this.value);
+        });
+      });
+    }
+    
+    function updateSliderFromInput(paramIndex, inputValue) {
+      const paramKey = document.getElementById(`param${paramIndex}`).value;
+      if (!paramKey) return;
+      
+      const range = paramRanges[paramKey];
+      if (!range) return;
+      
+      const value = parseFloat(inputValue);
+      if (isNaN(value)) return;
+      
+      const clampedValue = Math.max(range.min, Math.min(range.max, value));
+      
+      const normalizedValue = ((clampedValue - range.min) / (range.max - range.min)) * 100;
+      
+      const slider = document.getElementById(`slider${paramIndex}`);
+      const valueDisplay = document.getElementById(`sliderValue${paramIndex}`);
+      const input = document.getElementById(`value${paramIndex}`);
+      
+      if (slider && valueDisplay && input) {
+        slider.value = normalizedValue;
+        
+        let displayValue;
+        if (paramKey.includes('angle')) {
+          displayValue = clampedValue.toFixed(1) + '°';
+        } else {
+          displayValue = clampedValue.toFixed(3);
+        }
+        
+        valueDisplay.textContent = displayValue;
+        
+        const currentInputValue = parseFloat(input.value);
+        if (isNaN(currentInputValue) || Math.abs(currentInputValue - clampedValue) > 0.001) {
+          if (paramKey.includes('angle')) {
+            input.value = clampedValue.toFixed(1);
+          } else {
+            input.value = clampedValue.toFixed(3);
+          }
+        }
+      }
+    }
+    
+    // ========== ФУНКЦИИ ДЛЯ ГЕНЕРАЦИИ ПАРАМЕТРОВ ==========
+    function calculateAllParamsFromAngles(α, β, R = 1) {
+      const γ = Math.PI - α - β;
+      
+      if (!isValidTriangle(α, β, γ)) {
+        return {
+          sideBC: "0", sideAC: "0", sideAB: "0",
+          angleA: "0", angleB: "0", angleC: "0",
+          altitudeA: "0", altitudeB: "0", altitudeC: "0",
+          bisectorA: "0", bisectorB: "0", bisectorC: "0",
+          medianA: "0", medianB: "0", medianC: "0",
+          circumradius: "0", inradius: "0", area: "0"
+        };
+      }
+      
+      const a = 2 * R * Math.sin(α);
+      const b = 2 * R * Math.sin(β);
+      const c = 2 * R * Math.sin(γ);
+      
+      const p = (a + b + c) / 2;
+      const S = Math.sqrt(p * (p - a) * (p - b) * (p - c));
+      
+      const ha = 2 * S / a;
+      const hb = 2 * S / b;
+      const hc = 2 * S / c;
+      
+      const la = (2 * b * c * Math.cos(α / 2)) / (b + c);
+      const lb = (2 * a * c * Math.cos(β / 2)) / (a + c);
+      const lc = (2 * a * b * Math.cos(γ / 2)) / (a + b);
+      
+      const ma = 0.5 * Math.sqrt(2 * b * b + 2 * c * c - a * a);
+      const mb = 0.5 * Math.sqrt(2 * a * a + 2 * c * c - b * b);
+      const mc = 0.5 * Math.sqrt(2 * a * a + 2 * b * b - c * c);
+      
+      const r = S / p;
+      
+      const params = {};
+      
+      params.sideBC = a.toFixed(8);
+      params.sideAC = b.toFixed(8);
+      params.sideAB = c.toFixed(8);
+      params.angleA = (α * 180 / Math.PI).toFixed(8);
+      params.angleB = (β * 180 / Math.PI).toFixed(8);
+      params.angleC = (γ * 180 / Math.PI).toFixed(8);
+      params.altitudeA = ha.toFixed(8);
+      params.altitudeB = hb.toFixed(8);
+      params.altitudeC = hc.toFixed(8);
+      params.bisectorA = la.toFixed(8);
+      params.bisectorB = lb.toFixed(8);
+      params.bisectorC = lc.toFixed(8);
+      params.medianA = ma.toFixed(8);
+      params.medianB = mb.toFixed(8);
+      params.medianC = mc.toFixed(8);
+      params.circumradius = R.toFixed(8);
+      params.inradius = r.toFixed(8);
+      params.area = S.toFixed(8);
+      
+      return params;
+    }
+    
+    function calculateTrianglePoints(α, β, R = 1) {
+      const γ = Math.PI - α - β;
+
+      const A = { x: R, y: 0 };
+      
+      const θ_B = 2 * γ;
+      const B = { 
+        x: R * Math.cos(θ_B), 
+        y: R * Math.sin(θ_B) 
+      };
+      
+      const θ_C = -2 * β;
+      const C = { 
+        x: R * Math.cos(θ_C), 
+        y: R * Math.sin(θ_C) 
+      };
+
+      return { A, B, C };
+    }
+    
+    function isValidTriangle(α, β, γ) {
+      const ε = 1e-6;
+      return (
+        α > ε && β > ε && γ > ε &&
+        Math.abs(α + β + γ - Math.PI) < ε
+      );
+    }
+    
+    // ========== ОТОБРАЖЕНИЕ РЕЗУЛЬТАТОВ ==========
+    function displaySolution(solution) {
+      if (!solution) return;
+
+      const normalized = normalizeSolutionOrientation(solution);
+      currentSolution = normalized;
+
+      const statusText = document.getElementById('statusText');
+      const accuracyText = document.getElementById('accuracyText');
+      const iterationsText = document.getElementById('iterationsText');
+      const scaleText = document.getElementById('scaleText');
+      const angleAText = document.getElementById('angleAText');
+      const angleBText = document.getElementById('angleBText');
+      const angleCText = document.getElementById('angleCText');
+      const triangleTypeText = document.getElementById('triangleTypeText');
+
+      statusText.textContent = 'Решение найдено!';
+      statusText.style.color = '#2ecc71';
+
+      const accuracy = normalized.error ? Math.max(0, 100 - normalized.error * 100) : 100;
+      accuracyText.textContent = accuracy >= 99.99 ? '>99.99%' : accuracy.toFixed(2) + '%';
+
+      iterationsText.textContent = normalized.iterations || '0';
+      scaleText.textContent = normalized.scale.toFixed(4);
+      angleAText.textContent = `${normalized.angles.α.toFixed(2)}°`;
+      angleBText.textContent = `${normalized.angles.β.toFixed(2)}°`;
+      angleCText.textContent = `${normalized.angles.γ.toFixed(2)}°`;
+      triangleTypeText.textContent = getTriangleTypeName(normalized.type);
+
+      updateChart(normalized);
+      updateAllParamsTable(normalized);
+
+      showStatusMessage(`Решение найдено с точностью ${accuracy.toFixed(2)}%`, 'success');
+
+      if (accuracy < 95) {
+        showStatusMessage(`Решение найдено с точностью ${accuracy.toFixed(2)}%`, 'warning');
+      }
+    }
+    
+    function normalizeSolutionOrientation(solution) {
+      if (!solution || !solution.points) return solution;
+
+      const points = solution.points;
+      const A = points.A;
+      const B = points.B;
+      const C = points.C;
+
+      if (!A || !B || !C) return solution;
+
+      const cross = (B.x - A.x) * (C.y - A.y) - (B.y - A.y) * (C.x - A.x);
+
+      if (cross > 0) {
+        return solution;
+      }
+
+      const newPoints = { A: A, B: C, C: B };
+
+      const newAngles = solution.angles ? {
+        α: solution.angles.α,
+        β: solution.angles.γ,
+        γ: solution.angles.β
+      } : solution.angles;
+
+      let newParams = solution.params ? { ...solution.params } : solution.params;
+
+      if (newParams) {
+        const oldSideAB = newParams.sideAB;
+        const oldSideBC = newParams.sideBC;
+        const oldSideAC = newParams.sideAC;
+
+        newParams.sideAB = oldSideAC;
+        newParams.sideBC = oldSideBC;
+        newParams.sideAC = oldSideAB;
+
+        if ('altitudeB' in newParams && 'altitudeC' in newParams) {
+          const oldAltB = newParams.altitudeB;
+          const oldAltC = newParams.altitudeC;
+          newParams.altitudeB = oldAltC;
+          newParams.altitudeC = oldAltB;
+        }
+
+        if ('medianB' in newParams && 'medianC' in newParams) {
+          const oldMedB = newParams.medianB;
+          const oldMedC = newParams.medianC;
+          newParams.medianB = oldMedC;
+          newParams.medianC = oldMedB;
+        }
+
+        if ('bisectorB' in newParams && 'bisectorC' in newParams) {
+          const oldBisB = newParams.bisectorB;
+          const oldBisC = newParams.bisectorC;
+          newParams.bisectorB = oldBisC;
+          newParams.bisectorC = oldBisB;
+        }
+      }
+
+      return {
+        ...solution,
+        points: newPoints,
+        angles: newAngles,
+        params: newParams
+      };
+    }
+    
+    // ========== ОБНОВЛЕНИЕ ГРАФИКА ==========
+    function updateChart(solution) {
+      if (!solution || !chart) return;
+      
+      const { A, B, C } = solution.points;
+      const R = solution.scale;
+      
+      // Рассчитываем дополнительные элементы
+      const α = solution.angles.α * Math.PI / 180;
+      const β = solution.angles.β * Math.PI / 180;
+      const γ = solution.angles.γ * Math.PI / 180;
+      
+      const a = parseFloat(solution.params.sideBC);
+      const b = parseFloat(solution.params.sideAC);
+      const c = parseFloat(solution.params.sideAB);
+      const S = parseFloat(solution.params.area);
+      
+      // Центр вписанной окружности
+      const incenter = {
+        x: (a * A.x + b * B.x + c * C.x) / (a + b + c),
+        y: (a * A.y + b * B.y + c * C.y) / (a + b + c)
+      };
+      
+      const r = parseFloat(solution.params.inradius);
+      
+      const unitCirclePoints = generateCirclePoints(1, 100);
+      const circumCirclePoints = generateCirclePoints(R, 100);
+      const inCirclePoints = generateCirclePoints(r, 100).map(p => ({
+        x: p.x + incenter.x,
+        y: p.y + incenter.y
+      }));
+      
+      const datasets = [
+        {
+          label: 'Единичная окружность',
+          data: unitCirclePoints,
+          borderColor: '#3498db',
+          backgroundColor: 'transparent',
+          pointRadius: 0,
+          showLine: true,
+          fill: false,
+          borderDash: [5, 5],
+          borderWidth: 1
+        },
+        {
+          label: 'Описанная окружность',
+          data: circumCirclePoints,
+          borderColor: '#9b59b6',
+          backgroundColor: 'rgba(155, 89, 182, 0.05)',
+          pointRadius: 0,
+          showLine: true,
+          fill: false,
+          borderWidth: 2
+        },
+        {
+          label: 'Вписанная окружность',
+          data: inCirclePoints,
+          borderColor: '#2ecc71',
+          backgroundColor: 'rgba(46, 204, 113, 0.1)',
+          pointRadius: 0,
+          showLine: true,
+          fill: true,
+          borderWidth: 1.5
+        },
+        {
+          label: 'Треугольник',
+          data: [A, B, C, A],
+          borderColor: '#e74c3c',
+          backgroundColor: 'rgba(231, 76, 60, 0.2)',
+          pointRadius: 0,
+          showLine: true,
+          fill: true,
+          borderWidth: 2
+        },
+        {
+          label: 'Вершина A',
+          data: [A],
+          backgroundColor: '#e74c3c',
+          pointRadius: 8,
+          showLine: false,
+          pointStyle: 'circle'
+        },
+        {
+          label: 'Вершина B',
+          data: [B],
+          backgroundColor: '#e74c3c',
+          pointRadius: 8,
+          showLine: false,
+          pointStyle: 'circle'
+        },
+        {
+          label: 'Вершина C',
+          data: [C],
+          backgroundColor: '#e74c3c',
+          pointRadius: 8,
+          showLine: false,
+          pointStyle: 'circle'
+        },
+        {
+          label: 'Инцентр',
+          data: [incenter],
+          backgroundColor: '#2ecc71',
+          pointRadius: 6,
+          showLine: false,
+          pointStyle: 'rect'
+        }
+      ];
+      
+      chart.data.datasets = datasets;
+      
+      chart.options.plugins.annotation = {
+        annotations: {
+          labelA: {
+            type: 'label',
+            xValue: A.x,
+            yValue: A.y,
+            content: 'A',
+            font: { size: 16, weight: 'bold' },
+            color: '#2c3e50',
+            xAdjust: 20,
+            yAdjust: 20
+          },
+          labelB: {
+            type: 'label',
+            xValue: B.x,
+            yValue: B.y,
+            content: 'B',
+            font: { size: 16, weight: 'bold' },
+            color: '#2c3e50',
+            xAdjust: 20,
+            yAdjust: 20
+          },
+          labelC: {
+            type: 'label',
+            xValue: C.x,
+            yValue: C.y,
+            content: 'C',
+            font: { size: 16, weight: 'bold' },
+            color: '#2c3e50',
+            xAdjust: 20,
+            yAdjust: 20
+          }
+        }
+      };
+      
+      applyTriangleYscale();
+    }
+    
+    // ========== ОСТАЛЬНЫЕ ФУНКЦИИ ==========
+    function checkCompatibility() {
+      if (Object.keys(selectedParameters).length === 0) {
+        showStatusMessage('Сначала выберите параметры', 'warning');
+        return;
+      }
+      
+      const compatibility = checkParameterCompatibility(selectedParameters);
+      const panel = document.getElementById('compatibilityPanel');
+      const resultsDiv = document.getElementById('compatibilityResults');
+      
+      resultsDiv.innerHTML = '';
+      
+      if (compatibility.passed) {
+        const div = document.createElement('div');
+        div.className = 'compatibility-result validation-ok';
+        div.innerHTML = `
+          <div><strong>✓ Параметры совместимы</strong></div>
+          <div>Можно запускать расчёт треугольника</div>
+        `;
+        resultsDiv.appendChild(div);
+        
+        if (compatibility.warnings.length > 0) {
+          compatibility.warnings.forEach(warning => {
+            const warnDiv = document.createElement('div');
+            warnDiv.className = 'compatibility-result validation-warning';
+            warnDiv.innerHTML = `
+              <div><strong>⚠ Предупреждение:</strong></div>
+              <div>${warning.message}</div>
+            `;
+            resultsDiv.appendChild(warnDiv);
+          });
+        }
+      } else {
+        const div = document.createElement('div');
+        div.className = 'compatibility-result validation-error';
+        div.innerHTML = `
+          <div><strong>✗ Параметры несовместимы</strong></div>
+          <div>Невозможно построить треугольник с заданными параметрами</div>
+        `;
+        resultsDiv.appendChild(div);
+        
+        compatibility.errors.forEach(error => {
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'compatibility-result validation-error';
+          errorDiv.innerHTML = `
+            <div><strong>✗ Ошибка:</strong></div>
+            <div>${error.message}</div>
+          `;
+          resultsDiv.appendChild(errorDiv);
+        });
+      }
+      
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    function hideCompatibilityPanel() {
+      document.getElementById('compatibilityPanel').style.display = 'none';
+    }
+    
+    function debugCoordinates() {
+      if (!currentSolution) {
+        showStatusMessage('Нет треугольника для отладки', 'warning');
+        return;
+      }
+      
+      const panel = document.getElementById('debugPanel');
+      const resultsDiv = document.getElementById('debugResults');
+      
+      const { A, B, C } = currentSolution.points;
+      const { α, β, γ } = currentSolution.angles;
+      const R = currentSolution.scale;
+      
+      const dist = (p1, p2) => Math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2);
+      const a_actual = dist(B, C);
+      const b_actual = dist(A, C);
+      const c_actual = dist(A, B);
+      
+      const angleFromCoords = (p1, p2, p3) => {
+        const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
+        const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
+        const dot = v1.x * v2.x + v1.y * v2.y;
+        const mag1 = Math.sqrt(v1.x**2 + v1.y**2);
+        const mag2 = Math.sqrt(v2.x**2 + v2.y**2);
+        const cosAngle = dot / (mag1 * mag2);
+        const clamped = Math.max(-1, Math.min(1, cosAngle));
+        return Math.acos(clamped) * 180 / Math.PI;
+      };
+      
+      const α_actual = angleFromCoords(B, A, C);
+      const β_actual = angleFromCoords(A, B, C);
+      const γ_actual = angleFromCoords(A, C, B);
+      
+      resultsDiv.innerHTML = '';
+      
+      const coordsDiv = document.createElement('div');
+      coordsDiv.innerHTML = '<strong>Координаты вершин:</strong>';
+      resultsDiv.appendChild(coordsDiv);
+      
+      addDebugRow('A (вершина α)', `(${A.x.toFixed(4)}, ${A.y.toFixed(4)})`, resultsDiv);
+      addDebugRow('B (вершина β)', `(${B.x.toFixed(4)}, ${B.y.toFixed(4)})`, resultsDiv);
+      addDebugRow('C (вершина γ)', `(${C.x.toFixed(4)}, ${C.y.toFixed(4)})`, resultsDiv);
+      addDebugRow('Радиус R', R.toFixed(4), resultsDiv);
+      
+      const sidesDiv = document.createElement('div');
+      sidesDiv.innerHTML = '<br><strong>Фактические стороны из координат:</strong>';
+      resultsDiv.appendChild(sidesDiv);
+      
+      addDebugRow('AB (c)', `${c_actual.toFixed(4)} (ожидается: ${parseFloat(currentSolution.params.sideAB).toFixed(4)})`, resultsDiv);
+      addDebugRow('BC (a)', `${a_actual.toFixed(4)} (ожидается: ${parseFloat(currentSolution.params.sideBC).toFixed(4)})`, resultsDiv);
+      addDebugRow('AC (b)', `${b_actual.toFixed(4)} (ожидается: ${parseFloat(currentSolution.params.sideAC).toFixed(4)})`, resultsDiv);
+      
+      const anglesDiv = document.createElement('div');
+      anglesDiv.innerHTML = '<br><strong>Фактические углы из координат:</strong>';
+      resultsDiv.appendChild(anglesDiv);
+      
+      addDebugRow('∠A (α)', `${α_actual.toFixed(2)}° (ожидается: ${α.toFixed(2)}°)`, resultsDiv);
+      addDebugRow('∠B (β)', `${β_actual.toFixed(2)}° (ожидается: ${β.toFixed(2)}°)`, resultsDiv);
+      addDebugRow('∠C (γ)', `${γ_actual.toFixed(2)}° (ожидается: ${γ.toFixed(2)}°)`, resultsDiv);
+      
+      const sumAnglesActual = α_actual + β_actual + γ_actual;
+      addDebugRow('Сумма углов', `${sumAnglesActual.toFixed(2)}° (ожидается 180°)`, resultsDiv);
+      
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    function addDebugRow(label, value, container) {
+      const row = document.createElement('div');
+      row.className = 'debug-row';
+      row.innerHTML = `
+        <span class="debug-label">${label}:</span>
+        <span class="debug-value">${value}</span>
+      `;
+      container.appendChild(row);
+    }
+    
+    function validateTriangleGeometry(params) {
+      const results = [];
+      const ε = 1e-6;
+      
+      const a = parseFloat(params.sideBC);
+      const b = parseFloat(params.sideAC);
+      const c = parseFloat(params.sideAB);
+      const α = parseFloat(params.angleA);
+      const β = parseFloat(params.angleB);
+      const γ = parseFloat(params.angleC);
+      const R = parseFloat(params.circumradius);
+      const S = parseFloat(params.area);
+      const r = parseFloat(params.inradius);
+      
+      const sumAngles = α + β + γ;
+      const angleError = Math.abs(sumAngles - 180);
+      results.push({
+        test: 'Сумма углов',
+        value: sumAngles.toFixed(6),
+        expected: '180.000000',
+        error: angleError,
+        passed: angleError < 0.001
+      });
+      
+      const sinRatioA = a / Math.sin(α * Math.PI / 180);
+      const sinRatioB = b / Math.sin(β * Math.PI / 180);
+      const sinRatioC = c / Math.sin(γ * Math.PI / 180);
+      const sinError = Math.max(
+        Math.abs(sinRatioA - sinRatioB),
+        Math.abs(sinRatioB - sinRatioC),
+        Math.abs(sinRatioA - sinRatioC)
+      );
+      results.push({
+        test: 'Теорема синусов',
+        value: `${sinRatioA.toFixed(3)} ≈ ${sinRatioB.toFixed(3)} ≈ ${sinRatioC.toFixed(3)}`,
+        expected: 'Равные отношения',
+        error: sinError,
+        passed: sinError < 0.01
+      });
+      
+      const R_from_sides = (a * b * c) / (4 * S);
+      const R_error = Math.abs(R - R_from_sides);
+      results.push({
+        test: 'Радиус описанной окружности',
+        value: R.toFixed(6),
+        expected: R_from_sides.toFixed(6),
+        error: R_error,
+        passed: R_error < 0.001
+      });
+      
+      const p = (a + b + c) / 2;
+      const r_from_sides = S / p;
+      const r_error = Math.abs(r - r_from_sides);
+      results.push({
+        test: 'Радиус вписанной окружности',
+        value: r.toFixed(6),
+        expected: r_from_sides.toFixed(6),
+        error: r_error,
+        passed: r_error < 0.001
+      });
+      
+      const triangleInequality = (a + b > c) && (a + c > b) && (b + c > a);
+      results.push({
+        test: 'Неравенство треугольника',
+        value: triangleInequality ? 'Выполнено' : 'Нарушено',
+        expected: 'Выполнено',
+        error: triangleInequality ? 0 : 1,
+        passed: triangleInequality
+      });
+      
+      return {
+        results: results,
+        passed: results.every(r => r.passed),
+        score: results.filter(r => r.passed).length / results.length * 100
+      };
+    }
+    
+    function validateCurrentTriangleEnhanced() {
+      if (!currentSolution) {
+        showStatusMessage('Нет треугольника для проверки', 'warning');
+        return;
+      }
+      
+      const validation = validateTriangleGeometry(currentSolution.params);
+      const practicalCheck = checkPracticalFeasibility(currentSolution.params);
+      const numericalCheck = checkNumericalFeasibility(currentSolution.params);
+      
+      const panel = document.getElementById('validationPanel');
+      const resultsDiv = document.getElementById('validationResults');
+      
+      resultsDiv.innerHTML = '';
+      
+      // Заголовок
+      const header = document.createElement('div');
+      header.className = 'validation-result';
+      header.style.backgroundColor = '#34495e';
+      header.style.color = 'white';
+      header.style.fontWeight = 'bold';
+      header.innerHTML = '<div style="text-align: center;">ПОЛНАЯ ВАЛИДАЦИЯ ТРЕУГОЛЬНИКА</div>';
+      resultsDiv.appendChild(header);
+      
+      // Базовые геометрические проверки
+      validation.results.forEach(result => {
+        const div = document.createElement('div');
+        div.className = `validation-result ${result.passed ? 'validation-ok' : 'validation-error'}`;
+        
+        let status = result.passed ? '✓' : '✗';
+        
+        div.innerHTML = `
+          <div><strong>${status} ${result.test}:</strong></div>
+          <div>Получено: ${result.value}</div>
+          <div>Ожидается: ${result.expected}</div>
+          <div style="font-size: 11px; color: #666;">Ошибка: ${result.error.toExponential(2)}</div>
+        `;
+        
+        resultsDiv.appendChild(div);
+      });
+      
+      // Проверка практической реализуемости
+      if (practicalCheck.allIssues.length > 0) {
+        const practicalDiv = document.createElement('div');
+        practicalDiv.className = `validation-result ${practicalCheck.feasible ? 'validation-warning' : 'validation-error'}`;
+        practicalDiv.innerHTML = `
+          <div><strong>${practicalCheck.feasible ? '⚠' : '✗'} Практическая реализуемость:</strong></div>
+          <div>${practicalCheck.feasible ? 'Есть предупреждения' : 'Есть критические проблемы'}</div>
+        `;
+        resultsDiv.appendChild(practicalDiv);
+        
+        practicalCheck.allIssues.forEach((issue, index) => {
+          if (index < 3) {
+            const issueDiv = document.createElement('div');
+            issueDiv.className = 'validation-result validation-warning';
+            issueDiv.style.marginLeft = '20px';
+            issueDiv.style.fontSize = '12px';
+            issueDiv.innerHTML = `• ${issue}`;
+            resultsDiv.appendChild(issueDiv);
+          }
+        });
+      }
+      
+      // Итоговый результат
+      const overallPassed = validation.passed && practicalCheck.feasible && numericalCheck.feasible;
+      const summary = document.createElement('div');
+      summary.className = `validation-result ${overallPassed ? 'validation-ok' : 'validation-error'}`;
+      summary.innerHTML = `
+        <div><strong>${overallPassed ? '✓ ТРЕУГОЛЬНИК КОРРЕКТЕН' : '✗ ЕСТЬ ПРОБЛЕМЫ'}</strong></div>
+        <div>Геометрия: ${validation.results.filter(r => r.passed).length}/${validation.results.length}</div>
+        <div>Оценка: ${validation.score.toFixed(1)}%</div>
+        <div>Практическая реализуемость: ${practicalCheck.feasible ? '✓' : '✗'}</div>
+        <div>Численная стабильность: ${numericalCheck.feasible ? '✓' : '✗'}</div>
+      `;
+      resultsDiv.appendChild(summary);
+      
+      panel.style.display = 'block';
+      updateAllParamsTable(currentSolution);
+    }
+    
+    function determineTriangleType(params) {
+      const a = parseFloat(params.sideBC);
+      const b = parseFloat(params.sideAC);
+      const c = parseFloat(params.sideAB);
+      const α = parseFloat(params.angleA);
+      const β = parseFloat(params.angleB);
+      const γ = parseFloat(params.angleC);
+      
+      const ε = 0.01;
+      
+      if (Math.abs(a - b) < ε && Math.abs(b - c) < ε && 
+          Math.abs(α - 60) < 1 && Math.abs(β - 60) < 1 && Math.abs(γ - 60) < 1) {
+        return 'equilateral';
+      }
+      
+      if (Math.abs(α - 90) < 1 || Math.abs(β - 90) < 1 || Math.abs(γ - 90) < 1) {
+        return 'right';
+      }
+      
+      if (Math.abs(a - b) < ε || Math.abs(a - c) < ε || Math.abs(b - c) < ε) {
+        return 'isosceles';
+      }
+      
+      return 'scalene';
+    }
+    
+    function updateAllParamsTable(solution = null) {
+      const tbody = document.getElementById('paramsTableBody');
+      tbody.innerHTML = '';
+      
+      let validation = null;
+      if (solution && solution.params) {
+        validation = validateTriangleGeometry(solution.params);
+      }
+      
+      allParameters.forEach((param, index) => {
+        let value = '-';
+        let isGiven = false;
+        let isValid = true;
+        let validationInfo = '';
+        
+        if (solution && solution.params && solution.params[param.key] !== undefined) {
+          value = solution.params[param.key];
+          
+          if (validation) {
+            const numValue = parseFloat(value);
+            
+            if (param.key.includes('side')) {
+              const a = parseFloat(solution.params.sideBC);
+              const b = parseFloat(solution.params.sideAC);
+              const c = parseFloat(solution.params.sideAB);
+              isValid = (a + b > c && a + c > b && b + c > a);
+              if (!isValid) validationInfo = 'Нарушено неравенство треугольника';
+            } else if (param.key.includes('angle')) {
+              const sum = parseFloat(solution.params.angleA || 0) + 
+                         parseFloat(solution.params.angleB || 0) + 
+                         parseFloat(solution.params.angleC || 0);
+              isValid = Math.abs(sum - 180) < 0.001;
+              if (!isValid) validationInfo = `Сумма углов: ${sum.toFixed(2)}°`;
+            }
+          }
+        }
+        
+        if (selectedParameters && selectedParameters[param.key] !== undefined) {
+          isGiven = true;
+          value = selectedParameters[param.key].toFixed(6);
+        }
+        
+        const row = document.createElement('tr');
+        if (isGiven) {
+          row.style.backgroundColor = '#e8f6f3';
+        }
+        
+        const numValue = parseFloat(value);
+        const cellClass = !isNaN(numValue) && numValue <= 0 ? 'invalid' : 'valid';
+        
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${param.name}</td>
+          <td>${param.designation}</td>
+          <td class="${cellClass}"><strong>${value}</strong></td>
+          <td>${isGiven ? '✓' : ''} ${validationInfo ? `<span style="color: #e74c3c; font-size: 10px;">${validationInfo}</span>` : ''}</td>
+        `;
+        
+        tbody.appendChild(row);
+      });
+    }
+    
+    function getTriangleTypeName(type) {
+      const names = {
+        'equilateral': 'равносторонний',
+        'right': 'прямоугольный',
+        'isosceles': 'равнобедренный',
+        'scalene': 'разносторонний'
+      };
+      return names[type] || type;
+    }
+    
+    function generateTriangleByType(type) {
+      clearAll();
+      
+      let solution;
+      switch(type) {
+        case 'equilateral':
+          solution = generateEquilateralTriangle();
+          break;
+        case 'right':
+          solution = generateRightTriangle();
+          break;
+        case 'isosceles':
+          solution = generateIsoscelesTriangle();
+          break;
+        default:
+          solution = generateRandomTriangle();
+      }
+      
+      displayGeneratedTriangle(solution);
+      showStatusMessage(`Сгенерирован ${getTriangleTypeName(solution.type)} треугольник`, 'info');
+    }
+    
+    function generateEquilateralTriangle() {
+      const α = 60, β = 60, γ = 60;
+      const R = 1;
+      const αRad = α * Math.PI / 180;
+      const βRad = β * Math.PI / 180;
+      
+      const params = calculateAllParamsFromAngles(αRad, βRad, R);
+      const points = calculateTrianglePoints(αRad, βRad, R);
+      
+      return {
+        points: points,
+        params: params,
+        scale: R,
+        angles: { α, β, γ },
+        type: 'equilateral'
+      };
+    }
+    
+    function generateRightTriangle() {
+      const α = 90, β = 45, γ = 45;
+      const R = 1;
+      const αRad = α * Math.PI / 180;
+      const βRad = β * Math.PI / 180;
+      
+      const params = calculateAllParamsFromAngles(αRad, βRad, R);
+      const points = calculateTrianglePoints(αRad, βRad, R);
+      
+      return {
+        points: points,
+        params: params,
+        scale: R,
+        angles: { α, β, γ },
+        type: 'right'
+      };
+    }
+    
+    function generateIsoscelesTriangle() {
+      const α = 70, β = 70, γ = 40;
+      const R = 1;
+      const αRad = α * Math.PI / 180;
+      const βRad = β * Math.PI / 180;
+      
+      const params = calculateAllParamsFromAngles(αRad, βRad, R);
+      const points = calculateTrianglePoints(αRad, βRad, R);
+      
+      return {
+        points: points,
+        params: params,
+        scale: R,
+        angles: { α, β, γ },
+        type: 'isosceles'
+      };
+    }
+    
+    function generateRandomTriangle() {
+      let α, β;
+      do {
+        α = 10 + Math.random() * 160;
+        β = 10 + Math.random() * (160 - α);
+      } while (α + β >= 170 || α <= 0 || β <= 0);
+      
+      const γ = 180 - α - β;
+      const R = 1.0 + Math.random() * 1.5;
+      
+      const αRad = α * Math.PI / 180;
+      const βRad = β * Math.PI / 180;
+      
+      const params = calculateAllParamsFromAngles(αRad, βRad, R);
+      const points = calculateTrianglePoints(αRad, βRad, R);
+      const type = determineTriangleType(params);
+      
+      return {
+        points: points,
+        params: params,
+        scale: R,
+        angles: { α, β, γ },
+        type: type,
+        validated: validateTriangleGeometry(params)
+      };
+    }
+    
+    function displayGeneratedTriangle(solution) {
+      if (!solution) return;
+      
+      currentSolution = solution;
+      
+      updateChart(solution);
+      updateAllParamsTable(solution);
+      
+      document.getElementById('statusText').textContent = `Треугольник: ${getTriangleTypeName(solution.type)}`;
+      document.getElementById('statusText').style.color = '#9b59b6';
+      document.getElementById('accuracyText').textContent = '100%';
+      document.getElementById('iterationsText').textContent = '0';
+      document.getElementById('scaleText').textContent = solution.scale.toFixed(2);
+      document.getElementById('angleAText').textContent = `${solution.angles.α.toFixed(2)}°`;
+      document.getElementById('angleBText').textContent = `${solution.angles.β.toFixed(2)}°`;
+      document.getElementById('angleCText').textContent = `${solution.angles.γ.toFixed(2)}°`;
+      document.getElementById('triangleTypeText').textContent = getTriangleTypeName(solution.type);
+    }
+    
+    function generateRandomProblem() {
+      clearAll();
+      
+      const R = 1.0 + Math.random() * 1.5;
+      let α, β;
+      
+      do {
+        α = 10 + Math.random() * 160;
+        β = 10 + Math.random() * (160 - α);
+      } while (α + β >= 170 || α <= 0 || β <= 0);
+      
+      const γ = 180 - α - β;
+      
+      if (γ < 10 || γ > 170) {
+        return generateRandomProblem();
+      }
+      
+      const αRad = α * Math.PI / 180;
+      const βRad = β * Math.PI / 180;
+      
+      const params = calculateAllParamsFromAngles(αRad, βRad, R);
+      const points = calculateTrianglePoints(αRad, βRad, R);
+      const type = determineTriangleType(params);
+      
+      const solution = {
+        points: points,
+        params: params,
+        scale: R,
+        angles: { α, β, γ },
+        type: type,
+        validated: validateTriangleGeometry(params)
+      };
+      
+      const allKeys = Object.keys(solution.params).filter(key => {
+        const value = parseFloat(solution.params[key]);
+        return !isNaN(value) && value > 0;
+      });
+      
+      let selectedKeys = [];
+      let attempts = 0;
+      const maxAttempts = 100;
+      
+      while (selectedKeys.length < 3 && attempts < maxAttempts) {
+        const shuffled = [...allKeys].sort(() => Math.random() - 0.5);
+        const candidateKeys = shuffled.slice(0, 3);
+        
+        const hasAngle = candidateKeys.some(k => k.includes('angle'));
+        const hasSide = candidateKeys.some(k => k.includes('side'));
+        const hasOther = candidateKeys.some(k => !k.includes('angle') && !k.includes('side'));
+        
+        if ((hasAngle && hasSide) || (hasAngle && hasOther) || (hasSide && hasOther)) {
+          selectedKeys = candidateKeys;
+          break;
+        }
+        
+        attempts++;
+      }
+      
+      if (selectedKeys.length < 3) {
+        selectedKeys = allKeys.slice(0, 3);
+      }
+      
+      selectedKeys.forEach((key, index) => {
+        const value = solution.params[key];
+        if (value) {
+          const select = document.getElementById(`param${index + 1}`);
+          select.value = key;
+          
+          const numValue = parseFloat(value);
+          const input = document.getElementById(`value${index + 1}`);
+          
+          if (key.includes('angle')) {
+            input.value = numValue.toFixed(1);
+          } else {
+            input.value = numValue.toFixed(3);
+          }
+          
+          updateSliderForParam(index + 1, key);
+          
+          const range = paramRanges[key];
+          if (range) {
+            const clampedValue = Math.max(range.min, Math.min(range.max, numValue));
+            const normalizedValue = ((clampedValue - range.min) / (range.max - range.min)) * 100;
+            
+            const slider = document.getElementById(`slider${index + 1}`);
+            const valueDisplay = document.getElementById(`sliderValue${index + 1}`);
+            
+            if (slider && valueDisplay) {
+              slider.value = normalizedValue;
+              
+              let displayValue;
+              if (key.includes('angle')) {
+                displayValue = clampedValue.toFixed(1) + '°';
+              } else {
+                displayValue = clampedValue.toFixed(3);
+              }
+              
+              valueDisplay.textContent = displayValue;
+            }
+          }
+        }
+      });
+      
+      displayGeneratedTriangle(solution);
+      validateParameterSelection();
+      
+      showStatusMessage(`Сгенерирована задача с ${getTriangleTypeName(solution.type)} треугольником`, 'info');
+    }
+    
+    function testAndDisplayFormulas() {
+      console.clear();
+      console.log('=== ТЕСТИРОВАНИЕ ФОРМУЛ ===');
+      
+      const equilateral = generateEquilateralTriangle();
+      console.log('\n1. Равносторонний треугольник (α=β=γ=60°, R=1):');
+      console.log('Стороны (ожидается ~1.732):', 
+        equilateral.params.sideAB, equilateral.params.sideBC, equilateral.params.sideAC);
+      
+      const right = generateRightTriangle();
+      console.log('\n2. Прямоугольный треугольник (α=90°, β=γ=45°, R=1):');
+      console.log('Стороны:', right.params.sideAB, right.params.sideBC, right.params.sideAC);
+      
+      const validation = validateTriangleGeometry(equilateral.params);
+      console.log('\n3. Проверка геометрии равностороннего треугольника:');
+      console.log(`Пройдено тестов: ${validation.results.filter(r => r.passed).length}/${validation.results.length}`);
+      console.log(`Оценка: ${validation.score.toFixed(1)}%`);
+      
+      displayGeneratedTriangle(equilateral);
+      
+      setTimeout(() => {
+        debugCoordinates();
+      }, 500);
+      
+      showStatusMessage('Тестирование завершено. Проверьте консоль браузера (F12).', 'info');
+    }
+    
+    function clearAll() {
+      closeSolutionsPanel();
+      hideCompatibilityPanel();
+      allSolutions = [];
+      currentSolutionIndex = 0;
+      currentStatusMessages = [];
+      
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById(`param${i}`).value = '';
+        document.getElementById(`value${i}`).value = '';
+        document.getElementById(`sliderContainer${i}`).style.display = 'none';
+        document.getElementById(`param${i}`).style.borderColor = '#ddd';
+        document.getElementById(`value${i}`).style.borderColor = '#ddd';
+        document.getElementById(`fixParam${i}`).checked = false;
+        document.getElementById(`paramRow${i}`).classList.remove('fixed');
+      }
+      
+      selectedParameters = {};
+      currentSolution = null;
+      
+      document.getElementById('solveBtn').disabled = true;
+      document.getElementById('solveAllBtn').disabled = true;
+      document.getElementById('randomParamsBtn').disabled = true;
+      document.getElementById('solveBtn').textContent = 'Рассчитать';
+      document.getElementById('statusText').textContent = 'Ожидание входных данных';
+      document.getElementById('statusText').style.color = '#7f8c8d';
+      document.getElementById('accuracyText').textContent = '-';
+      document.getElementById('iterationsText').textContent = '0';
+      document.getElementById('scaleText').textContent = '1.00';
+      document.getElementById('angleAText').textContent = '-';
+      document.getElementById('angleBText').textContent = '-';
+      document.getElementById('angleCText').textContent = '-';
+      document.getElementById('triangleTypeText').textContent = '-';
+      
+      hideErrorMessage();
+      updateStatusPanel();
+      
+      document.getElementById('validationPanel').style.display = 'none';
+      document.getElementById('debugPanel').style.display = 'none';
+      
+      if (chart) {
+        chart.data.datasets = [
+          {
+            label: 'Единичная окружность',
+            data: generateCirclePoints(1, 100),
+            borderColor: '#3498db',
+            backgroundColor: 'transparent',
+            pointRadius: 0,
+            showLine: true,
+            fill: false,
+            borderDash: [5, 5],
+            borderWidth: 1
+          }
+        ];
+        chart.options.scales.x.min = -3.5;
+        chart.options.scales.x.max = 3.5;
+        chart.options.scales.y.min = -3.5;
+        chart.options.scales.y.max = 3.5;
+        chart.options.plugins.annotation = { annotations: {} };
+        applyTriangleYscale();
+      }
+      
+      updateAllParamsTable();
+    }
+    
+    function clearSolutionOnInvalidParams() {
+      const statusText = document.getElementById('statusText');
+      const accuracyText = document.getElementById('accuracyText');
+      const iterationsText = document.getElementById('iterationsText');
+      
+      statusText.textContent = 'Недопустимые параметры';
+      statusText.style.color = '#e74c3c';
+      accuracyText.textContent = '-';
+      iterationsText.textContent = '0';
+      document.getElementById('scaleText').textContent = '1.00';
+      document.getElementById('angleAText').textContent = '-';
+      document.getElementById('angleBText').textContent = '-';
+      document.getElementById('angleCText').textContent = '-';
+      document.getElementById('triangleTypeText').textContent = '-';
+      
+      currentSolution = null;
+      
+      if (chart) {
+        chart.data.datasets = [{
+          label: 'Единичная окружность',
+          data: generateCirclePoints(1, 100),
+          borderColor: '#3498db',
+          backgroundColor: 'transparent',
+          pointRadius: 0,
+          showLine: true,
+          fill: false,
+          borderDash: [5, 5],
+          borderWidth: 1
+        }];
+        chart.update();
+      }
+      
+      updateAllParamsTable();
+    }
+    
+    async function findAllSolutionsEnhanced() {
+      if (!validateParameterSelection()) return;
+      
+      const preCheck = preValidateParametersEnhanced(selectedParameters);
+      if (!preCheck.valid) {
+        showErrorMessage(preCheck.message, true);
+        clearSolutionOnInvalidParams();
+        return;
+      }
+      
+      const solveAllBtn = document.getElementById('solveAllBtn');
+      solveAllBtn.disabled = true;
+      solveAllBtn.textContent = 'Поиск...';
+      
+      isFindingAll = true;
+      
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      
+      progressContainer.style.display = 'block';
+      progressText.textContent = 'Поиск всех решений (улучшенный алгоритм)...';
+      
+      try {
+        const mainSolution = await optimizeTriangleWithScaleEnhanced(selectedParameters, (progress, iteration, error) => {
+          progressBar.style.width = Math.min(50, progress) + '%';
+          progressText.textContent = `Основное решение: ${iteration} итераций, ошибка: ${error.toFixed(6)}`;
+        });
+        
+        allSolutions = generateAllTriangleVariantsEnhanced(mainSolution);
+        displaySolutionsPanel(allSolutions);
+        
+        if (allSolutions.length > 0) {
+          showSolution(0);
+        }
+        
+        showStatusMessage(`Найдено ${allSolutions.length} решений`, 'success');
+        
+      } catch (error) {
+        showErrorMessage(`Ошибка поиска: ${error.message}`, true);
+        clearSolutionOnInvalidParams();
+      } finally {
+        solveAllBtn.disabled = false;
+        solveAllBtn.textContent = 'Все решения';
+        progressContainer.style.display = 'none';
+        progressBar.style.width = '0%';
+        isFindingAll = false;
+      }
+    }
+    
+    function generateAllTriangleVariantsEnhanced(mainSolution) {
+      if (!mainSolution) return [];
+      
+      const variants = [mainSolution];
+      
+      if (mainSolution.type !== 'equilateral') {
+        // Зеркальное отражение
+        const mirrored = createMirroredTriangle(mainSolution);
+        if (mirrored) {
+          variants.push({
+            ...mirrored,
+            isMirror: true,
+            displayName: "Симметричное"
+          });
+        }
+        
+        // Вращения (для не равносторонних треугольников)
+        const rotated1 = rotateTriangle(mainSolution, 120);
+        if (rotated1 && !isDuplicateSolution(variants, rotated1)) {
+          variants.push({
+            ...rotated1,
+            displayName: "Поворот 120°"
+          });
+        }
+        
+        const rotated2 = rotateTriangle(mainSolution, 240);
+        if (rotated2 && !isDuplicateSolution(variants, rotated2)) {
+          variants.push({
+            ...rotated2,
+            displayName: "Поворот 240°"
+          });
+        }
+      }
+      
+      return variants.map(s => normalizeSolutionOrientation(s));
+    }
+    
+    function createMirroredTriangle(original) {
+      if (!original || !original.points) return null;
+      
+      const { A, B, C } = original.points;
+      
+      return {
+        ...original,
+        points: {
+          A: { x: A.x, y: -A.y },
+          B: { x: B.x, y: -B.y },
+          C: { x: C.x, y: -C.y }
+        },
+        isMirror: true
+      };
+    }
+    
+    function rotateTriangle(solution, angleDeg) {
+      if (!solution || !solution.points) return null;
+      
+      const angleRad = angleDeg * Math.PI / 180;
+      const cosA = Math.cos(angleRad);
+      const sinA = Math.sin(angleRad);
+      
+      const rotatePoint = (p) => ({
+        x: p.x * cosA - p.y * sinA,
+        y: p.x * sinA + p.y * cosA
+      });
+      
+      return {
+        ...solution,
+        points: {
+          A: rotatePoint(solution.points.A),
+          B: rotatePoint(solution.points.B),
+          C: rotatePoint(solution.points.C)
+        }
+      };
+    }
+    
+    function isDuplicateSolution(solutions, newSolution) {
+      if (!newSolution || !newSolution.points) return true;
+      
+      return solutions.some(existing => {
+        if (!existing || !existing.points) return false;
+        
+        const dist = (p1, p2) => Math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2);
+        
+        const distances = [
+          dist(existing.points.A, newSolution.points.A),
+          dist(existing.points.B, newSolution.points.B),
+          dist(existing.points.C, newSolution.points.C)
+        ];
+        
+        return distances.every(d => d < 0.001);
+      });
+    }
+    
+    function displaySolutionsPanel(solutions) {
+      if (!solutions || solutions.length === 0) return;
+      
+      const panel = document.getElementById('solutionsPanel');
+      const grid = document.getElementById('solutionsGrid');
+      const countDisplay = document.getElementById('solutionsCountDisplay');
+      const infoSpan = document.getElementById('allSolutionsInfo');
+      const solutionsCount = document.getElementById('solutionsCount');
+      
+      countDisplay.textContent = solutions.length;
+      solutionsCount.textContent = solutions.length;
+      infoSpan.style.display = 'inline';
+      
+      grid.innerHTML = '';
+      
+      solutions.forEach((solution, index) => {
+        const thumb = document.createElement('div');
+        thumb.className = `solution-thumb ${solution.isMirror ? 'mirror' : ''}`;
+        thumb.onclick = () => showSolution(index);
+        
+        const typeName = getTriangleTypeName(solution.type);
+        const errorPercent = solution.error ? 
+          Math.max(0, 100 - solution.error * 100).toFixed(1) : '100.0';
+        
+        let title = `Решение ${index + 1}`;
+        if (solution.displayName) {
+          title = solution.displayName;
+        } else if (solution.isMirror) {
+          title = "Симметричное";
+        }
+        
+        thumb.innerHTML = `
+          <div class="thumb-title">${title}</div>
+          <div class="thumb-info">
+            α=${solution.angles.α.toFixed(1)}°<br>
+            β=${solution.angles.β.toFixed(1)}°<br>
+            ${typeName}<br>
+            <small>Точность: ${errorPercent}%</small>
+          </div>
+          <div class="solution-actions">
+            <button class="solution-btn view-btn" onclick="event.stopPropagation(); showSolution(${index})">
+              👁 Просмотр
+            </button>
+            <button class="solution-btn animate-btn" onclick="event.stopPropagation(); animateToSolution(${index})">
+              → Анимация
+            </button>
+          </div>
+        `;
+        
+        grid.appendChild(thumb);
+      });
+      
+      panel.style.display = 'block';
+    }
+    
+    function showSolution(index) {
+      if (!allSolutions || index < 0 || index >= allSolutions.length) return;
+      
+      document.querySelectorAll('.solution-thumb').forEach((thumb, i) => {
+        thumb.classList.toggle('active', i === index);
+      });
+      
+      const solution = allSolutions[index];
+      displaySolution(solution);
+      currentSolution = solution;
+      currentSolutionIndex = index;
+      
+      updateSolutionIndicator();
+    }
+    
+    function showPreviousSolution() {
+      if (allSolutions.length <= 1) return;
+      const newIndex = (currentSolutionIndex - 1 + allSolutions.length) % allSolutions.length;
+      showSolution(newIndex);
+    }
+    
+    function showNextSolution() {
+      if (allSolutions.length <= 1) return;
+      const newIndex = (currentSolutionIndex + 1) % allSolutions.length;
+      showSolution(newIndex);
+    }
+    
+    function animateToSolution(targetIndex) {
+      if (!allSolutions || targetIndex === currentSolutionIndex || allSolutions.length <= 1) return;
+      
+      const steps = 20;
+      const duration = 800;
+      const stepTime = duration / steps;
+      
+      const startSolution = allSolutions[currentSolutionIndex];
+      const endSolution = allSolutions[targetIndex];
+      
+      let currentStep = 0;
+      
+      const animate = () => {
+        if (currentStep > steps) {
+          showSolution(targetIndex);
+          return;
+        }
+        
+        const t = currentStep / steps;
+        const easeT = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        
+        const interpolatedPoints = {
+          A: {
+            x: startSolution.points.A.x + (endSolution.points.A.x - startSolution.points.A.x) * easeT,
+            y: startSolution.points.A.y + (endSolution.points.A.y - startSolution.points.A.y) * easeT
+          },
+          B: {
+            x: startSolution.points.B.x + (endSolution.points.B.x - startSolution.points.B.x) * easeT,
+            y: startSolution.points.B.y + (endSolution.points.B.y - startSolution.points.B.y) * easeT
+          },
+          C: {
+            x: startSolution.points.C.x + (endSolution.points.C.x - startSolution.points.C.x) * easeT,
+            y: startSolution.points.C.y + (endSolution.points.C.y - startSolution.points.C.y) * easeT
+          }
+        };
+        
+        const intermediateSolution = {
+          ...startSolution,
+          points: interpolatedPoints
+        };
+        
+        updateChart(intermediateSolution);
+        
+        currentStep++;
+        setTimeout(animate, stepTime);
+      };
+      
+      animate();
+    }
+    
+    function updateSolutionIndicator() {
+      const indicator = document.getElementById('solutionIndicator');
+      if (!allSolutions || allSolutions.length <= 1) {
+        indicator.textContent = '';
+        return;
+      }
+      
+      indicator.textContent = `[${currentSolutionIndex + 1}/${allSolutions.length}]`;
+    }
+    
+    function closeSolutionsPanel() {
+      const panel = document.getElementById('solutionsPanel');
+      panel.style.display = 'none';
+      
+      const infoSpan = document.getElementById('allSolutionsInfo');
+      infoSpan.style.display = 'none';
+      
+      allSolutions = [];
+      currentSolutionIndex = 0;
+      updateSolutionIndicator();
+    }
+    
+    // ========== ФУНКЦИИ ДЛЯ КНОПКИ "СЛУЧАЙНЫЕ ПАРАМЕТРЫ" ==========
+    function setupFixCheckboxes() {
+      for (let i = 1; i <= 3; i++) {
+        const checkbox = document.getElementById(`fixParam${i}`);
+        const paramRow = document.getElementById(`paramRow${i}`);
+        
+        checkbox.addEventListener('change', function() {
+          if (this.checked) {
+            paramRow.classList.add('fixed');
+          } else {
+            paramRow.classList.remove('fixed');
+          }
+          updateRandomParamsButtonState();
+        });
+      }
+    }
+    
+    function updateRandomParamsButtonState() {
+      const param1Selected = document.getElementById('param1').value !== '';
+      const param2Selected = document.getElementById('param2').value !== '';
+      const param3Selected = document.getElementById('param3').value !== '';
+      
+      const allParamsSelected = param1Selected && param2Selected && param3Selected;
+      
+      const fix1 = document.getElementById('fixParam1').checked;
+      const fix2 = document.getElementById('fixParam2').checked;
+      const fix3 = document.getElementById('fixParam3').checked;
+      
+      const allFixed = fix1 && fix2 && fix3;
+      
+      const randomParamsBtn = document.getElementById('randomParamsBtn');
+      
+      if (allParamsSelected && !allFixed) {
+        randomParamsBtn.disabled = false;
+      } else {
+        randomParamsBtn.disabled = true;
+      }
+    }
+    
+    function randomizeNonFixedParameters() {
+      if (!validateParameterSelection()) return;
+      
+      let changedAny = false;
+      
+      for (let i = 1; i <= 3; i++) {
+        const paramKey = document.getElementById(`param${i}`).value;
+        const isFixed = document.getElementById(`fixParam${i}`).checked;
+        
+        if (!paramKey || isFixed) continue;
+        
+        const range = paramRanges[paramKey];
+        if (!range) continue;
+        
+        let randomValue;
+        
+        if (paramKey.includes('angle')) {
+          const otherAngles = getOtherAngleValues(i);
+          const maxAngle = 170 - otherAngles.reduce((a, b) => a + b, 0);
+          
+          if (maxAngle < 10) {
+            continue;
+          }
+          
+          randomValue = 10 + Math.random() * (maxAngle - 10);
+          randomValue = Math.max(10, Math.min(maxAngle, randomValue));
+        } else {
+          randomValue = range.min + Math.random() * (range.max - range.min);
+        }
+        
+        const input = document.getElementById(`value${i}`);
+        const slider = document.getElementById(`slider${i}`);
+        const valueDisplay = document.getElementById(`sliderValue${i}`);
+        
+        if (paramKey.includes('angle')) {
+          input.value = randomValue.toFixed(1);
+        } else {
+          input.value = randomValue.toFixed(3);
+        }
+        
+        const normalizedValue = ((randomValue - range.min) / (range.max - range.min)) * 100;
+        
+        if (slider) slider.value = normalizedValue;
+        
+        let displayValue;
+        if (paramKey.includes('angle')) {
+          displayValue = randomValue.toFixed(1) + '°';
+        } else {
+          displayValue = randomValue.toFixed(3);
+        }
+        
+        if (valueDisplay) valueDisplay.textContent = displayValue;
+        
+        changedAny = true;
+      }
+      
+      if (changedAny) {
+        validateParameterSelection();
+        showStatusMessage('Значения незафиксированных параметров обновлены', 'info');
+      } else {
+        showStatusMessage('Все параметры зафиксированы', 'warning');
+      }
+    }
+    
+    function getOtherAngleValues(currentIndex) {
+      const otherAngles = [];
+      
+      for (let i = 1; i <= 3; i++) {
+        if (i === currentIndex) continue;
+        
+        const paramKey = document.getElementById(`param${i}`).value;
+        const isFixed = document.getElementById(`fixParam${i}`).checked;
+        
+        if (paramKey && paramKey.includes('angle') && isFixed) {
+          const value = parseFloat(document.getElementById(`value${i}`).value);
+          if (!isNaN(value)) {
+            otherAngles.push(value);
+          }
+        }
+      }
+      
+      return otherAngles;
+    }
+    
+    // ========== ФУНКЦИЯ ДЛЯ ПРОВЕРКИ ПРАКТИЧЕСКОЙ РЕАЛИЗУЕМОСТИ UI ==========
+    function checkPracticalFeasibilityUI() {
+      if (Object.keys(selectedParameters).length === 0) {
+        showStatusMessage('Сначала выберите параметры', 'warning');
+        return;
+      }
+      
+      const compatibility = checkParameterCompatibility(selectedParameters);
+      const practicalCheck = checkPracticalFeasibility(selectedParameters);
+      const numericalCheck = checkNumericalFeasibility(selectedParameters);
+      
+      const panel = document.getElementById('compatibilityPanel');
+      const resultsDiv = document.getElementById('compatibilityResults');
+      
+      resultsDiv.innerHTML = '';
+      
+      // Заголовок
+      const header = document.createElement('div');
+      header.className = 'compatibility-result';
+      header.style.backgroundColor = '#34495e';
+      header.style.color = 'white';
+      header.style.fontWeight = 'bold';
+      header.innerHTML = '<div style="text-align: center;">ПОЛНАЯ ПРОВЕРКА ПАРАМЕТРОВ</div>';
+      resultsDiv.appendChild(header);
+      
+      // 1. Совместимость параметров
+      const compatDiv = document.createElement('div');
+      compatDiv.className = `compatibility-result ${compatibility.passed ? 'validation-ok' : 'validation-error'}`;
+      compatDiv.innerHTML = `
+        <div><strong>${compatibility.passed ? '✓' : '✗'} Совместимость параметров:</strong></div>
+        <div>${compatibility.passed ? 'Параметры совместимы' : 'Есть несовместимые параметры'}</div>
+        <div style="font-size: 11px;">Проверено: ${compatibility.allChecks.length} условий</div>
+      `;
+      resultsDiv.appendChild(compatDiv);
+      
+      // 2. Практическая реализуемость
+      const practicalDiv = document.createElement('div');
+      practicalDiv.className = `compatibility-result ${practicalCheck.feasible ? 'validation-ok' : 'validation-error'}`;
+      practicalDiv.innerHTML = `
+        <div><strong>${practicalCheck.feasible ? '✓' : '✗'} Практическая реализуемость:</strong></div>
+        <div>${practicalCheck.feasible ? 'Параметры реализуемы' : 'Есть проблемы с реализацией'}</div>
+        <div style="font-size: 11px;">Ошибок: ${practicalCheck.errors.length}, Предупреждений: ${practicalCheck.warnings.length}</div>
+      `;
+      resultsDiv.appendChild(practicalDiv);
+      
+      // 3. Численная стабильность
+      const numericalDiv = document.createElement('div');
+      numericalDiv.className = `compatibility-result ${numericalCheck.feasible ? 'validation-ok' : 'validation-error'}`;
+      numericalDiv.innerHTML = `
+        <div><strong>${numericalCheck.feasible ? '✓' : '✗'} Численная стабильность:</strong></div>
+        <div>${numericalCheck.feasible ? 'Параметры стабильны' : 'Возможны численные ошибки'}</div>
+        <div style="font-size: 11px;">Проблем: ${numericalCheck.issues.length}</div>
+      `;
+      resultsDiv.appendChild(numericalDiv);
+      
+      // Вывод всех проблем
+      const allProblems = [
+        ...compatibility.errors.map(e => ({type: 'error', message: e.message})),
+        ...practicalCheck.errors.map(e => ({type: 'error', message: e})),
+        ...practicalCheck.warnings.map(w => ({type: 'warning', message: w})),
+        ...numericalCheck.issues.map(i => ({type: i.includes('ошибка') ? 'error' : 'warning', message: i}))
+      ];
+      
+      if (allProblems.length > 0) {
+        const problemsDiv = document.createElement('div');
+        problemsDiv.className = 'compatibility-result';
+        problemsDiv.style.backgroundColor = '#f8f9fa';
+        problemsDiv.innerHTML = '<div><strong>Детали:</strong></div>';
+        resultsDiv.appendChild(problemsDiv);
+        
+        allProblems.forEach(problem => {
+          const problemDiv = document.createElement('div');
+          problemDiv.className = `compatibility-result ${problem.type === 'error' ? 'validation-error' : 'validation-warning'}`;
+          problemDiv.style.marginTop = '5px';
+          problemDiv.innerHTML = `
+            <div><strong>${problem.type === 'error' ? '✗' : '⚠'} ${problem.type === 'error' ? 'Ошибка' : 'Предупреждение'}:</strong></div>
+            <div>${problem.message}</div>
+          `;
+          resultsDiv.appendChild(problemDiv);
+        });
+      }
+      
+      // Итоговый вердикт
+      const overallPassed = compatibility.passed && practicalCheck.feasible && numericalCheck.feasible;
+      const verdictDiv = document.createElement('div');
+      verdictDiv.className = `compatibility-result ${overallPassed ? 'validation-ok' : 'validation-error'}`;
+      verdictDiv.style.fontWeight = 'bold';
+      verdictDiv.style.fontSize = '14px';
+      verdictDiv.innerHTML = `
+        <div><strong>${overallPassed ? '✓ ГОТОВО К РАСЧЁТУ' : '✗ ТРЕБУЮТСЯ ИСПРАВЛЕНИЯ'}</strong></div>
+        <div>${overallPassed ? 'Все проверки пройдены успешно' : 'Есть проблемы, которые нужно исправить'}</div>
+      `;
+      resultsDiv.appendChild(verdictDiv);
+      
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    // ========== УЛУЧШЕННЫЕ ОБРАБОТЧИКИ СОБЫТИЙ ==========
+    function setupEnhancedEventListeners() {
+      // Добавляем валидацию при вводе значений
+      ['value1', 'value2', 'value3'].forEach(id => {
+        const input = document.getElementById(id);
+        
+        input.addEventListener('input', function() {
+          const index = parseInt(id.replace('value', ''));
+          const paramKey = document.getElementById(`param${index}`).value;
+          
+          if (!paramKey) return;
+          
+          const value = parseFloat(this.value);
+          if (isNaN(value)) return;
+          
+          // Проверка практической реализуемости для отдельных значений
+          if (paramKey.includes('angle')) {
+            if (value < 0.1 || value > 179.9) {
+              this.style.borderColor = '#e74c3c';
+              showStatusMessage(`Угол слишком близок к границам (${value}°)`, 'warning');
+            } else {
+              this.style.borderColor = '#2ecc71';
+            }
+          } else {
+            if (value < 0.001) {
+              this.style.borderColor = '#e74c3c';
+              showStatusMessage(`Значение слишком мало (${value})`, 'warning');
+            } else if (value > 1000) {
+              this.style.borderColor = '#e74c3c';
+              showStatusMessage(`Значение слишком велико (${value})`, 'warning');
+            } else {
+              this.style.borderColor = '#2ecc71';
+            }
+          }
+        });
+      });
+    }
+    
+    // Регистрация плагина для аннотаций Chart.js
+    if (typeof Chart !== 'undefined' && Chart.register) {
+      Chart.register({
+        id: 'annotation',
+        afterDraw: function(chart) {
+          const ctx = chart.ctx;
+          const annotations = chart.options.plugins?.annotation?.annotations;
+          
+          if (!annotations) return;
+          
+          Object.values(annotations).forEach(annotation => {
+            if (!annotation || !annotation.xValue || !annotation.yValue) return;
+            
+            const meta = chart.getDatasetMeta(0);
+            const xScale = chart.scales.x;
+            const yScale = chart.scales.y;
+            
+            const x = xScale.getPixelForValue(annotation.xValue);
+            const y = yScale.getPixelForValue(annotation.yValue);
+            
+            ctx.save();
+            ctx.font = annotation.font?.size + 'px ' + (annotation.font?.weight || 'normal') + ' Arial';
+            ctx.fillStyle = annotation.color || '#2c3e50';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const xAdj = annotation.xAdjust || 0;
+            const yAdj = annotation.yAdjust || 0;
+            
+            ctx.fillText(annotation.content, x + xAdj, y + yAdj);
+            ctx.restore();
+          });
+        }
+      });
+    }
+  </script>
+</body>
+</html>
