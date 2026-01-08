@@ -389,6 +389,7 @@
     let currentSolutionIndex = 0;
     let isFindingAll = false;
     let currentStatusMessages = [];
+    let autoCalculateTimer = null; // Таймер для авторасчета
     
     const paramRanges = {
       'sideAB': { min: 0.1, max: 5.0, step: 0.01 },
@@ -467,6 +468,14 @@
           validateParameterSelection();
           updateRandomParamsButtonState();
           clearStatusMessages();
+          
+          // Авторасчет при изменении выбора параметра (если параметр не зафиксирован)
+          setTimeout(() => {
+            const isFixed = document.getElementById(`fixParam${index + 1}`).checked;
+            if (this.value && !isFixed && validateParameterSelection()) {
+              triggerAutoCalculate();
+            }
+          }, 100);
         });
       });
     }
@@ -476,8 +485,37 @@
         const slider = document.getElementById(`slider${i}`);
         const valueDisplay = document.getElementById(`sliderValue${i}`);
         const input = document.getElementById(`value${i}`);
+        const select = document.getElementById(`param${i}`);
+        const fixCheckbox = document.getElementById(`fixParam${i}`);
         
         if (slider && valueDisplay && input) {
+          // Функция для проверки, можно ли запустить авторасчет
+          const canAutoCalculate = () => {
+            // Проверяем, что параметр выбран и не зафиксирован
+            const paramKey = select.value;
+            const isFixed = fixCheckbox && fixCheckbox.checked;
+            
+            // Возвращаем true если параметр выбран и не зафиксирован
+            return paramKey && !isFixed && validateParameterSelection();
+          };
+          
+          // Функция запуска авторасчета
+          const triggerAutoCalculate = () => {
+            // Очищаем предыдущий таймер
+            if (autoCalculateTimer) {
+              clearTimeout(autoCalculateTimer);
+            }
+            
+            // Запускаем расчет через 300мс (дебаунсинг)
+            autoCalculateTimer = setTimeout(() => {
+              if (canAutoCalculate()) {
+                console.log(`Автоматический расчет: параметр ${i} изменен`);
+                startSolvingEnhanced();
+              }
+            }, 300);
+          };
+          
+          // Существующий код обработчика slider + авторасчет
           slider.addEventListener('input', function() {
             const paramKey = document.getElementById(`param${i}`).value;
             if (!paramKey) return;
@@ -500,8 +538,14 @@
             valueDisplay.textContent = displayValue;
             validateParameterSelection();
             clearStatusMessages();
+            
+            // АВТОМАТИЧЕСКИЙ ЗАПУСК РАСЧЕТА для незафиксированных параметров
+            if (canAutoCalculate()) {
+              triggerAutoCalculate();
+            }
           });
           
+          // Существующий код обработчика input + авторасчет  
           input.addEventListener('input', function() {
             const paramKey = document.getElementById(`param${i}`).value;
             if (!paramKey) return;
@@ -532,12 +576,14 @@
             valueDisplay.textContent = displayValue;
             validateParameterSelection();
             clearStatusMessages();
+            
+            // АВТОМАТИЧЕСКИЙ ЗАПУСК РАСЧЕТА для незафиксированных параметров
+            if (canAutoCalculate()) {
+              triggerAutoCalculate();
+            }
           });
           
-          document.getElementById(`param${i}`).addEventListener('change', function() {
-            updateSliderForParam(i, this.value);
-            clearStatusMessages();
-          });
+          // Для select уже есть обработчик в fillParameterSelects()
         }
       }
     }
@@ -1103,108 +1149,1533 @@
       };
     }
     
-    // ========== АДАПТИВНАЯ СКОРОСТЬ ОБУЧЕНИЯ ==========
-    function adaptiveLearningRate(error, iteration, hasStagnated = false) {
-      // Базовые настройки
-      const baseLR = 0.02;
-      const minLR = 0.0001;
-      const maxLR = 0.1;
-      
-      // Экспоненциальный спад
-      const decayFactor = Math.exp(-iteration / 2000);
-      
-      // Адаптация по ошибке
-      let adaptiveFactor = 1.0;
-      
-      if (error > 1.0) {
-        // Для больших ошибок - медленнее, чтобы избежать осцилляций
-        adaptiveFactor = 0.5;
-      } else if (error < 0.01) {
-        // Для малых ошибок - точная настройка
-        adaptiveFactor = 0.2;
-      } else if (error < 0.1) {
-        adaptiveFactor = 0.5;
+    // ========== АДАПТИВНЫЙ АЛГОРИТМ ОТЖИГА С АВТОНАСТРОЙКОЙ ==========
+    
+    // Класс для автоматической настройки SA
+    class AutoSAConfigurator {
+      static analyzeProblem(targetParams) {
+        const analysis = {
+          // Сложность задачи
+          complexity: this.estimateComplexity(targetParams),
+          
+          // Типы параметров
+          hasAngles: this.hasParameterType(targetParams, 'angle'),
+          hasSides: this.hasParameterType(targetParams, 'side'),
+          hasSpecial: this.hasSpecialParameters(targetParams),
+          
+          // Масштаб значений
+          valueRanges: this.getValueRanges(targetParams),
+          
+          // Ожидаемое поведение
+          expectedBehavior: this.predictBehavior(targetParams)
+        };
+        
+        return analysis;
       }
       
-      // Замедление при застое
-      if (hasStagnated) {
-        adaptiveFactor *= 0.3;
+      static estimateComplexity(params) {
+        let score = 0;
+        const weights = {
+          angle: 1,      // Простые
+          side: 2,       // Средние
+          area: 3,       // Сложные
+          radius: 3,     // Сложные
+          altitude: 4,   // Очень сложные
+          median: 5,     // Очень сложные
+          bisector: 6    // Самые сложные
+        };
+        
+        Object.keys(params).forEach(key => {
+          const type = this.getParamType(key);
+          score += weights[type] || 2;
+        });
+        
+        if (score <= 4) return 'low';
+        if (score <= 8) return 'medium';
+        return 'high';
       }
       
-      // Комбинированная скорость
-      let lr = baseLR * decayFactor * adaptiveFactor;
+      static getParamType(key) {
+        if (key.includes('angle')) return 'angle';
+        if (key.includes('side')) return 'side';
+        if (key.includes('altitude')) return 'altitude';
+        if (key.includes('median')) return 'median';
+        if (key.includes('bisector')) return 'bisector';
+        if (key === 'area') return 'area';
+        if (key === 'inradius' || key === 'circumradius') return 'radius';
+        return 'other';
+      }
       
-      // Ограничение
-      lr = Math.max(minLR, Math.min(maxLR, lr));
+      static hasParameterType(params, type) {
+        return Object.keys(params).some(key => this.getParamType(key) === type);
+      }
       
-      return lr;
+      static hasSpecialParameters(params) {
+        return Object.keys(params).some(key => 
+          this.getParamType(key) === 'altitude' || 
+          this.getParamType(key) === 'median' || 
+          this.getParamType(key) === 'bisector'
+        );
+      }
+      
+      static getValueRanges(params) {
+        const ranges = {};
+        Object.keys(params).forEach(key => {
+          ranges[key] = {
+            value: params[key],
+            type: this.getParamType(key),
+            normalized: this.normalizeValue(key, params[key])
+          };
+        });
+        return ranges;
+      }
+      
+      static normalizeValue(key, value) {
+        if (key.includes('angle')) {
+          return value / 180; // Нормализация углов
+        } else if (key === 'circumradius') {
+          return value / 5.0; // Максимальный радиус в диапазоне
+        } else if (key.includes('side')) {
+          return value / 5.0; // Максимальная сторона
+        }
+        return value / 10.0; // Общий случай
+      }
+      
+      static predictBehavior(params) {
+        // Определяем, насколько "чувствительна" задача
+        let sensitivity = 0;
+        let nonlinearity = 0;
+        
+        if (this.hasSpecialParameters(params)) {
+          sensitivity += 2; // Специальные линии более чувствительны
+          nonlinearity += 1;
+        }
+        
+        if (this.hasParameterType(params, 'angle') && this.hasParameterType(params, 'side')) {
+          sensitivity += 1; // Смешанные типы сложнее
+        }
+        
+        return {
+          sensitivity: Math.min(3, sensitivity),
+          nonlinearity: Math.min(2, nonlinearity),
+          expectedStagnation: sensitivity > 1 ? 'high' : 'low'
+        };
+      }
+      
+      static generateConfig(analysis, timeBudgetMs = 5000) {
+        const baseConfig = {
+          // Основные параметры SA
+          initialTemperature: 1000,
+          coolingSchedule: 'exponential',
+          coolingRate: 0.985,
+          minTemperature: 0.01,
+          maxIterations: 10000,
+          
+          // Параметры цепи Маркова
+          markovChainLength: 100,
+          innerIterations: 10,
+          
+          // Размеры шагов (в радианах для углов, относительные для других)
+          stepSizes: {
+            α: 0.15,  // ~8.6°
+            β: 0.15,
+            R: 0.08   // 8% от радиуса
+          },
+          
+          // Адаптация
+          adaptiveSteps: true,
+          adaptationRate: 0.99,
+          minStepSize: 0.001,
+          
+          // Перезапуски
+          enableRestarts: true,
+          restartAfterStagnation: 500,
+          restartProbability: 0.3,
+          
+          // Локальное улучшение
+          localRefinement: true,
+          refinementThreshold: 2.0
+        };
+        
+        // Корректировка на основе анализа
+        switch (analysis.complexity) {
+          case 'low':
+            baseConfig.initialTemperature = 500;
+            baseConfig.coolingRate = 0.96;
+            baseConfig.markovChainLength = 50;
+            baseConfig.maxIterations = 3000;
+            baseConfig.stepSizes = { α: 0.2, β: 0.2, R: 0.1 };
+            break;
+            
+          case 'high':
+            baseConfig.initialTemperature = 2000;
+            baseConfig.coolingRate = 0.995;
+            baseConfig.markovChainLength = 200;
+            baseConfig.maxIterations = 20000;
+            baseConfig.stepSizes = { α: 0.1, β: 0.1, R: 0.05 };
+            baseConfig.enableRestarts = true;
+            baseConfig.restartAfterStagnation = 300;
+            break;
+            
+          default: // medium
+            // Используем базовые настройки
+            break;
+        }
+        
+        // Дополнительные корректировки
+        if (analysis.hasSpecial) {
+          baseConfig.initialTemperature *= 1.5;
+          baseConfig.coolingRate = 0.99;
+          baseConfig.markovChainLength = 150;
+        }
+        
+        if (!analysis.hasAngles && analysis.hasSides) {
+          // Только стороны - проще поиск
+          baseConfig.stepSizes.α *= 1.5;
+          baseConfig.stepSizes.β *= 1.5;
+        }
+        
+        // Корректировка по времени
+        const estimatedMsPerIter = 0.3;
+        const affordableIterations = timeBudgetMs / estimatedMsPerIter;
+        if (affordableIterations < baseConfig.maxIterations) {
+          baseConfig.maxIterations = Math.floor(affordableIterations * 0.9);
+          // Ускоряем охлаждение для меньшего времени
+          baseConfig.coolingRate = Math.max(0.95, baseConfig.coolingRate * 0.99);
+        }
+        
+        return baseConfig;
+      }
+      
+      static calibrateInitialTemperature(targetParams, samples = 20) {
+        // Быстрая калибровка начальной температуры
+        let totalPositiveDelta = 0;
+        let positiveCount = 0;
+        
+        const currentState = {
+          α: Math.random() * Math.PI,
+          β: Math.random() * Math.PI,
+          R: 1.0
+        };
+        
+        currentState.params = calculateAllParamsFromAngles(currentState.α, currentState.β, currentState.R);
+        currentState.error = calculateErrorWithScale(currentState.params, targetParams);
+        
+        for (let i = 0; i < samples; i++) {
+          const neighbor = this.generateRandomNeighbor(currentState, { α: 0.2, β: 0.2, R: 0.1 });
+          neighbor.params = calculateAllParamsFromAngles(neighbor.α, neighbor.β, neighbor.R);
+          neighbor.error = calculateErrorWithScale(neighbor.params, targetParams);
+          
+          const delta = neighbor.error - currentState.error;
+          if (delta > 0) {
+            totalPositiveDelta += delta;
+            positiveCount++;
+          }
+        }
+        
+        if (positiveCount === 0) return 1000; // Значение по умолчанию
+        
+        const avgPositiveDelta = totalPositiveDelta / positiveCount;
+        
+        // Начальная температура должна давать ~80% вероятности принятия среднего ухудшения
+        const desiredAcceptance = 0.8;
+        const T0 = -avgPositiveDelta / Math.log(desiredAcceptance);
+        
+        return Math.max(100, Math.min(5000, T0));
+      }
+      
+      static generateRandomNeighbor(state, stepSizes) {
+        const neighbor = { ...state };
+        
+        // Случайное смещение с нормальным распределением
+        neighbor.α += (Math.random() - 0.5) * 2 * stepSizes.α;
+        neighbor.β += (Math.random() - 0.5) * 2 * stepSizes.β;
+        neighbor.R += (Math.random() - 0.5) * 2 * stepSizes.R;
+        
+        // Ограничения
+        neighbor.α = Math.max(0.01, Math.min(Math.PI - 0.02, neighbor.α));
+        neighbor.β = Math.max(0.01, Math.min(Math.PI - neighbor.α - 0.01, neighbor.β));
+        neighbor.R = Math.max(0.001, Math.min(10.0, neighbor.R));
+        
+        return neighbor;
+      }
     }
     
-    // ========== ПРОВЕРКА ЧИСЛЕННОЙ УСТОЙЧИВОСТИ ==========
-    function checkNumericalFeasibility(params) {
-      const issues = [];
-      
-      // Проверка на NaN и бесконечности
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (isNaN(value)) {
-            issues.push(`Параметр ${getParameterName(key)} содержит NaN`);
-          }
-          if (!isFinite(value)) {
-            issues.push(`Параметр ${getParameterName(key)} содержит бесконечное значение`);
-          }
-        }
-      });
-      
-      // Проверка условий для численной стабильности
-      const definedAngles = [];
-      let anglesSum = 0;
-      
-      if (params.angleA) {
-        definedAngles.push('A');
-        anglesSum += params.angleA;
-      }
-      if (params.angleB) {
-        definedAngles.push('B');
-        anglesSum += params.angleB;
-      }
-      if (params.angleC) {
-        definedAngles.push('C');
-        anglesSum += params.angleC;
-      }
-      
-      if (definedAngles.length === 3) {
-        const angleError = Math.abs(anglesSum - 180);
-        if (angleError > 0.1) {
-          issues.push(`Сумма углов (${anglesSum.toFixed(2)}°) значительно отличается от 180° (ошибка: ${angleError.toFixed(2)}°)`);
-        }
-      }
-      
-      // Проверка на практически вырожденный треугольник
-      if (params.angleA && params.angleB && params.angleC) {
-        const minAngle = Math.min(params.angleA, params.angleB, params.angleC);
-        const maxAngle = Math.max(params.angleA, params.angleB, params.angleC);
+    // Основной алгоритм отжига
+    class AdaptiveSimulatedAnnealing {
+      constructor(targetParams, progressCallback) {
+        this.targetParams = targetParams;
+        this.progressCallback = progressCallback;
         
-        if (minAngle < 0.1) {
-          issues.push(`Минимальный угол (${minAngle.toFixed(2)}°) слишком мал для численной стабильности`);
-        }
+        // Анализ задачи и автонастройка
+        this.analysis = AutoSAConfigurator.analyzeProblem(targetParams);
+        this.config = AutoSAConfigurator.generateConfig(this.analysis);
         
-        if (maxAngle > 179.9) {
-          issues.push(`Максимальный угол (${maxAngle.toFixed(2)}°) слишком близок к 180°`);
-        }
+        // Калибровка начальной температуры
+        this.config.initialTemperature = AutoSAConfigurator.calibrateInitialTemperature(targetParams);
         
-        // Проверка на почти прямолинейный треугольник
-        if (anglesSum > 179.9 && anglesSum < 180.1) {
-          if (maxAngle > 179.5 || minAngle < 0.5) {
-            issues.push("Треугольник практически вырожденный (один угол очень близок к 180°)");
-          }
+        // Инициализация
+        this.currentState = this.initializeState();
+        this.bestState = { ...this.currentState };
+        this.temperature = this.config.initialTemperature;
+        
+        // Статистика
+        this.iterations = 0;
+        this.acceptedMoves = 0;
+        this.improvements = 0;
+        this.stagnationCounter = 0;
+        this.lastImprovementIteration = 0;
+        
+        // Адаптивные параметры
+        this.currentStepSizes = { ...this.config.stepSizes };
+        this.acceptanceHistory = [];
+      }
+      
+      initializeState() {
+        // Несколько стратегий инициализации
+        const strategies = [
+          // Равносторонний
+          () => ({ α: Math.PI/3, β: Math.PI/3, R: 1.0 }),
+          
+          // Прямоугольный
+          () => ({ α: Math.PI/2, β: Math.PI/4, R: 1.0 }),
+          
+          // Остроугольный
+          () => ({ α: Math.PI*0.4, β: Math.PI*0.4, R: 1.0 }),
+          
+          // Случайный
+          () => ({
+            α: 0.1 + Math.random() * (Math.PI - 0.2),
+            β: 0.1 + Math.random() * (Math.PI - 0.2),
+            R: 0.5 + Math.random() * 2.0
+          })
+        ];
+        
+        // Выбираем случайную стратегию
+        const initFunc = strategies[Math.floor(Math.random() * strategies.length)];
+        const state = initFunc();
+        
+        // Проверяем и корректируем
+        state.β = Math.min(state.β, Math.PI - state.α - 0.01);
+        state.R = Math.max(0.1, Math.min(5.0, state.R));
+        
+        // Вычисляем ошибку
+        state.params = calculateAllParamsFromAngles(state.α, state.β, state.R);
+        state.error = calculateErrorWithScale(state.params, this.targetParams);
+        
+        return state;
+      }
+      
+      generateNeighbor() {
+        const neighbor = AutoSAConfigurator.generateRandomNeighbor(this.currentState, this.currentStepSizes);
+        neighbor.params = calculateAllParamsFromAngles(neighbor.α, neighbor.β, neighbor.R);
+        neighbor.error = calculateErrorWithScale(neighbor.params, this.targetParams);
+        return neighbor;
+      }
+      
+      acceptanceProbability(deltaError) {
+        if (deltaError < 0) return 1.0;
+        return Math.exp(-deltaError / this.temperature);
+      }
+      
+      coolDown() {
+        // Экспоненциальное охлаждение
+        this.temperature *= this.config.coolingRate;
+        
+        // Не опускаемся ниже минимальной температуры
+        if (this.temperature < this.config.minTemperature) {
+          this.temperature = this.config.minTemperature;
         }
       }
       
-      return {
-        feasible: issues.length === 0,
-        issues: issues
-      };
+      adaptStepSizes() {
+        if (!this.config.adaptiveSteps) return;
+        
+        // Анализируем историю принятия решений
+        const recentAcceptance = this.getRecentAcceptanceRate();
+        
+        if (recentAcceptance < 0.2) {
+          // Слишком мало принятий - уменьшаем шаги
+          this.currentStepSizes.α *= 0.9;
+          this.currentStepSizes.β *= 0.9;
+          this.currentStepSizes.R *= 0.9;
+        } else if (recentAcceptance > 0.6) {
+          // Слишком много принятий - увеличиваем шаги
+          this.currentStepSizes.α = Math.min(0.5, this.currentStepSizes.α * 1.1);
+          this.currentStepSizes.β = Math.min(0.5, this.currentStepSizes.β * 1.1);
+          this.currentStepSizes.R = Math.min(0.3, this.currentStepSizes.R * 1.1);
+        }
+        
+        // Нижний предел шагов
+        this.currentStepSizes.α = Math.max(this.config.minStepSize, this.currentStepSizes.α);
+        this.currentStepSizes.β = Math.max(this.config.minStepSize, this.currentStepSizes.β);
+        this.currentStepSizes.R = Math.max(this.config.minStepSize * 0.5, this.currentStepSizes.R);
+      }
+      
+      getRecentAcceptanceRate() {
+        const historyLength = Math.min(100, this.acceptanceHistory.length);
+        if (historyLength === 0) return 0.5;
+        
+        const recent = this.acceptanceHistory.slice(-historyLength);
+        return recent.filter(a => a).length / historyLength;
+      }
+      
+      checkForRestart() {
+        if (!this.config.enableRestarts) return false;
+        
+        const stagnation = this.iterations - this.lastImprovementIteration;
+        if (stagnation < this.config.restartAfterStagnation) return false;
+        
+        // Вероятность перезапуска увеличивается с ростом застоя
+        const restartProb = this.config.restartProbability * 
+          (stagnation / this.config.restartAfterStagnation);
+        
+        return Math.random() < restartProb;
+      }
+      
+      performRestart() {
+        // Сохраняем лучшее состояние
+        const savedBest = { ...this.bestState };
+        
+        // Перезапускаем с новой случайной точки
+        this.currentState = this.initializeState();
+        
+        // Частично сбрасываем температуру (не полностью)
+        this.temperature = Math.max(
+          this.config.minTemperature * 10,
+          this.temperature * 2.0
+        );
+        
+        // Сбрасываем счетчики
+        this.stagnationCounter = 0;
+        this.acceptanceHistory = [];
+        
+        // Восстанавливаем лучшее решение, если оно было
+        if (savedBest.error < this.currentState.error) {
+          this.currentState = { ...savedBest };
+          this.bestState = { ...savedBest };
+        }
+        
+        return true;
+      }
+      
+      localRefinement(state) {
+        // Выполняем локальное уточнение ТОЛЬКО если оно включено и есть шанс улучшения
+        if (!this.config.localRefinement || !Number.isFinite(state.error) || state.error > this.config.refinementThreshold) {
+          return state;
+        }
+
+        // Утилиты ограничений
+        const EPS = 1e-12;
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+        // Целевая функция (α, β, logR) -> error
+        const objective = (x) => {
+          let α = x[0], β = x[1];
+          const logR = x[2];
+
+          if (!Number.isFinite(α) || !Number.isFinite(β) || !Number.isFinite(logR)) return Infinity;
+
+          // Базовые ограничения треугольника: α>0, β>0, γ>0
+          const lim = Math.PI - 1e-9;
+          α = clamp(α, 1e-9, lim);
+          β = clamp(β, 1e-9, lim);
+
+          if (α + β >= lim) {
+            // мягко «вдавливаем» в допустимую область
+            const scale = (lim - 1e-9) / (α + β);
+            α *= scale;
+            β *= scale;
+          }
+
+          const R = Math.exp(logR);
+          if (!Number.isFinite(R) || R <= 0) return Infinity;
+
+          const params = calculateAllParamsFromAngles(α, β, R);
+          if (!params) return Infinity;
+
+          const err = calculateErrorWithScale(params, this.targetParams);
+          return Number.isFinite(err) ? err : Infinity;
+        };
+
+        // Nelder–Mead (робастное безградиентное уточнение)
+        const nelderMead = (x0, step, maxIter) => {
+          const n = x0.length;
+
+          // Инициализация симплекса
+          const simplex = [];
+          simplex.push({ x: x0.slice(), f: objective(x0) });
+          for (let i = 0; i < n; i++) {
+            const xi = x0.slice();
+            xi[i] += step[i];
+            simplex.push({ x: xi, f: objective(xi) });
+          }
+
+          const αc = 1.0;   // reflection
+          const γc = 2.0;   // expansion
+          const ρc = 0.5;   // contraction
+          const σc = 0.5;   // shrink
+
+          let best = simplex[0];
+
+          for (let iter = 0; iter < maxIter; iter++) {
+            simplex.sort((a, b) => a.f - b.f);
+
+            if (simplex[0].f < best.f) best = { x: simplex[0].x.slice(), f: simplex[0].f };
+
+            // критерий останова: малая «ширина» по f
+            const f0 = simplex[0].f, fn = simplex[n].f;
+            if (Number.isFinite(f0) && Number.isFinite(fn) && Math.abs(fn - f0) < 1e-12) break;
+            if (best.f < 1e-8) break;
+
+            // Центроид всех кроме худшей точки
+            const centroid = new Array(n).fill(0);
+            for (let i = 0; i < n; i++) {
+              for (let j = 0; j < n; j++) centroid[j] += simplex[i].x[j];
+            }
+            for (let j = 0; j < n; j++) centroid[j] /= n;
+
+            const worst = simplex[n];
+            const secondWorst = simplex[n - 1];
+
+            // Отражение
+            const xr = centroid.map((c, j) => c + αc * (c - worst.x[j]));
+            const fr = objective(xr);
+
+            if (fr < simplex[0].f) {
+              // Расширение
+              const xe = centroid.map((c, j) => c + γc * (xr[j] - c));
+              const fe = objective(xe);
+              simplex[n] = (fe < fr) ? { x: xe, f: fe } : { x: xr, f: fr };
+              continue;
+            }
+
+            if (fr < secondWorst.f) {
+              simplex[n] = { x: xr, f: fr };
+              continue;
+            }
+
+            // Сжатие
+            let xc;
+            if (fr < worst.f) {
+              // внешнее
+              xc = centroid.map((c, j) => c + ρc * (xr[j] - c));
+            } else {
+              // внутреннее
+              xc = centroid.map((c, j) => c - ρc * (c - worst.x[j]));
+            }
+            const fc = objective(xc);
+
+            if (fc < worst.f) {
+              simplex[n] = { x: xc, f: fc };
+              continue;
+            }
+
+            // Сжатие симплекса к лучшей точке
+            const bestX = simplex[0].x;
+            for (let i = 1; i < simplex.length; i++) {
+              const xs = bestX.map((bx, j) => bx + σc * (simplex[i].x[j] - bx));
+              simplex[i] = { x: xs, f: objective(xs) };
+            }
+          }
+
+          // Финальный best
+          simplex.sort((a, b) => a.f - b.f);
+          return (simplex[0].f < best.f) ? simplex[0] : best;
+        };
+
+        // Стартовая точка: текущее лучшее решение
+        const xStart = [state.α, state.β, Math.log(Math.max(state.R, 1e-12))];
+
+        // Базовые шаги (адаптивно от текущего масштаба)
+        const baseStep = [
+          Math.max(1e-4, Math.abs(state.α) * 1e-3),
+          Math.max(1e-4, Math.abs(state.β) * 1e-3),
+          1e-3
+        ];
+
+        let bestNM = nelderMead(xStart, baseStep, 700);
+
+        // Несколько рестартов вокруг лучшей точки (для ухода из локальных минимумов)
+        const restarts = 10;
+        for (let k = 0; k < restarts; k++) {
+          const s = Math.exp(-k / 3);
+          const x0 = [
+            bestNM.x[0] + (Math.random() * 2 - 1) * baseStep[0] * 10 * s,
+            bestNM.x[1] + (Math.random() * 2 - 1) * baseStep[1] * 10 * s,
+            bestNM.x[2] + (Math.random() * 2 - 1) * baseStep[2] * 5 * s
+          ];
+          const step = [baseStep[0] * 5 * s, baseStep[1] * 5 * s, baseStep[2] * 2 * s];
+          const cand = nelderMead(x0, step, 450);
+          if (cand.f < bestNM.f) bestNM = cand;
+          if (bestNM.f < 1e-8) break;
+        }
+
+        // Если улучшили — возвращаем улучшенный state
+        if (Number.isFinite(bestNM.f) && bestNM.f + 1e-15 < state.error) {
+          const α = bestNM.x[0], β = bestNM.x[1], R = Math.exp(bestNM.x[2]);
+          const params = calculateAllParamsFromAngles(α, β, R);
+          const improved = {
+            ...state,
+            α, β, R,
+            params,
+            error: bestNM.f
+          };
+          return improved;
+        }
+
+        return state;
+      }
+
+      async optimize() {
+        const startTime = Date.now();
+        let lastProgressUpdate = 0;
+        
+        for (this.iterations = 0; this.iterations < this.config.maxIterations; this.iterations++) {
+          // Проверка перезапуска
+          if (this.checkForRestart()) {
+            this.performRestart();
+            continue;
+          }
+          
+          // Генерация соседнего решения
+          const neighbor = this.generateNeighbor();
+          
+          // Вычисление изменения ошибки
+          const deltaError = neighbor.error - this.currentState.error;
+          
+          // Правило Метрополиса
+          const acceptanceProb = this.acceptanceProbability(deltaError);
+          const accepted = deltaError < 0 || Math.random() < acceptanceProb;
+          
+          // Запись в историю
+          this.acceptanceHistory.push(accepted);
+          if (this.acceptanceHistory.length > 1000) {
+            this.acceptanceHistory.shift();
+          }
+          
+          if (accepted) {
+            this.acceptedMoves++;
+            this.currentState = neighbor;
+            
+            // Проверка на лучшее решение
+            if (this.currentState.error < this.bestState.error) {
+              this.bestState = { ...this.currentState };
+              this.improvements++;
+              this.lastImprovementIteration = this.iterations;
+              this.stagnationCounter = 0;
+            } else {
+              this.stagnationCounter++;
+            }
+          }
+          
+          // Охлаждение
+          this.coolDown();
+          
+          // Адаптация шагов
+          if (this.iterations % 100 === 0) {
+            this.adaptStepSizes();
+          }
+          
+          // Отчет о прогрессе
+          const currentTime = Date.now();
+          if (currentTime - lastProgressUpdate > 100) { // Не чаще чем раз в 100мс
+            const progress = (this.iterations / this.config.maxIterations) * 100;
+            this.progressCallback(progress, this.iterations, this.bestState.error);
+            lastProgressUpdate = currentTime;
+          }
+          
+          // Проверка критериев остановки
+          if (this.shouldStop()) {
+            break;
+          }
+          
+          // Небольшая задержка для неблокирующего UI
+          if (this.iterations % 100 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+        }
+        
+        // Финальная локальная оптимизация
+        this.bestState = this.localRefinement(this.bestState);
+        
+        // Финальный отчет
+        const totalTime = Date.now() - startTime;
+        this.progressCallback(100, this.iterations, this.bestState.error);
+        
+        return {
+          state: this.bestState,
+          stats: {
+            iterations: this.iterations,
+            acceptedMoves: this.acceptedMoves,
+            improvements: this.improvements,
+            finalTemperature: this.temperature,
+            finalError: this.bestState.error,
+            totalTime: totalTime,
+            config: this.config
+          }
+        };
+      }
+      
+      shouldStop() {
+        // 1. Достигнута достаточная точность
+        if (this.bestState.error < 1e-6) return true;
+        
+        // 2. Температура слишком низкая для изменений
+        if (this.temperature < this.config.minTemperature * 10) {
+          const recentAcceptance = this.getRecentAcceptanceRate();
+          if (recentAcceptance < 0.01) return true;
+        }
+        
+        // 3. Слишком долго нет улучшений
+        const stagnation = this.iterations - this.lastImprovementIteration;
+        if (stagnation > this.config.maxIterations * 0.5) return true;
+        
+        return false;
+      }
+    }
+    
+    // ========== ОСНОВНАЯ ФУНКЦИЯ ОПТИМИЗАЦИИ ==========
+    async function optimizeTriangleWithSimulatedAnnealing(targetParams, progressCallback) {
+      try {
+        showStatusMessage('Автонастройка алгоритма отжига...', 'info');
+        
+        // Создаем и запускаем адаптивный алгоритм отжига
+        const sa = new AdaptiveSimulatedAnnealing(targetParams, progressCallback);
+        const result = await sa.optimize();
+        
+        // Конвертируем результат в стандартный формат
+        const solution = {
+          points: calculateTrianglePoints(result.state.α, result.state.β, result.state.R),
+          params: result.state.params,
+          scale: result.state.R,
+          angles: {
+            α: result.state.α * 180 / Math.PI,
+            β: result.state.β * 180 / Math.PI,
+            γ: (Math.PI - result.state.α - result.state.β) * 180 / Math.PI
+          },
+          type: determineTriangleType(result.state.params),
+          error: result.state.error,
+          iterations: result.stats.iterations,
+          stats: result.stats
+        };
+        
+        // Добавляем информацию о конфигурации
+        solution.metadata = {
+          algorithm: 'Adaptive Simulated Annealing',
+          config: result.stats.config,
+          autoConfigured: true,
+          complexity: sa.analysis.complexity
+        };
+        
+        
+        // ====== Локальное высокоточное дожимание (после отжига) ======
+        try {
+          await progressCallback(95, result.iteration || 0, result.state.error, "Локальное уточнение...");
+          const hpSolution = await optimizeTriangleHighPrecision(targetParams, progressCallback, result.state);
+          if (hpSolution && Number.isFinite(hpSolution.error) && hpSolution.error < solution.error) {
+            // заменяем решение на уточнённое
+            solution.points = hpSolution.points;
+            solution.params = hpSolution.params;
+            solution.scale = hpSolution.scale;
+            solution.angles = hpSolution.angles;
+            solution.type = hpSolution.type;
+            solution.error = hpSolution.error;
+            solution.metadata = Object.assign({}, solution.metadata, { refined: true, refinement: 'HighPrecision (Nelder-Mead + LM + golden)' });
+          }
+        } catch (refineErr) {
+          console.warn('Локальное уточнение не выполнено:', refineErr);
+        }
+
+        showStatusMessage(`Алгоритм отжига завершен: ${result.stats.iterations} итераций, точность ${(100 - result.state.error * 100).toFixed(2)}%`, 'success');
+        
+        return solution;
+        
+      } catch (error) {
+        console.error('Ошибка в алгоритме отжига:', error);
+        throw error;
+      }
+    }
+
+    // ========== ВЫСОКОТОЧНОЕ УТОЧНЕНИЕ (локальный дожим) ==========
+    class HighPrecisionOptimizer {
+        constructor(targetParams, progressCallback, seedState = null) {
+            this.targetParams = targetParams;
+            this.progressCallback = progressCallback;
+            this.seedState = seedState;
+            this.bestSolution = null;
+            this.bestError = Infinity;
+            this.stats = {
+                totalIterations: 0,
+                startTime: Date.now(),
+                convergenceHistory: []
+            };
+        }
+
+        async optimize() {
+            try {
+                // ФАЗА 0: Быстрая проверка и начальное приближение (10%)
+                await this.progressCallback(5, 0, Infinity, "Инициализация...");
+                const initialGuess = this.generateInitialGuesses();
+                
+                // ФАЗА 1: Многозапусковый поиск методом Нелдера-Мида (30%)
+                await this.progressCallback(10, 0, Infinity, "Глобальный поиск...");
+                const nmSolutions = await this.nelderMeadMultiStart(initialGuess, 20);
+                
+                // ФАЗА 2: Уточнение методом Левенберга-Марквардта (40%)
+                await this.progressCallback(40, 0, nmSolutions.bestError, "Точная оптимизация...");
+                const lmSolution = await this.levenbergMarquardt(nmSolutions.bestState, 30);
+                
+                // ФАЗА 3: Микро-коррекции методом золотого сечения (15%)
+                await this.progressCallback(70, 0, lmSolution.error, "Микро-коррекции...");
+                const refinedSolution = await this.goldenSectionRefinement(lmSolution, 10);
+                
+                // ФАЗА 4: Финальная проверка точности (5%)
+                await this.progressCallback(90, 0, refinedSolution.error, "Проверка точности...");
+                const finalSolution = await this.finalPrecisionCheck(refinedSolution, 5);
+                
+                return this.prepareFinalSolution(finalSolution);
+                
+            } catch (error) {
+                console.error('Ошибка оптимизации:', error);
+                throw error;
+            }
+        }
+
+        generateInitialGuesses() {
+            const guesses = [];
+            // 0. Seed from previous optimizer (if provided)
+            if (this.seedState && Number.isFinite(this.seedState.α) && Number.isFinite(this.seedState.β)) {
+                guesses.push({
+                    α: this.seedState.α,
+                    β: this.seedState.β,
+                    R: Number.isFinite(this.seedState.R) ? this.seedState.R : 1.0
+                });
+            }
+            
+            // 1. На основе заданных параметров (если есть углы)
+            if (this.targetParams.angleA && this.targetParams.angleB) {
+                guesses.push({
+                    α: this.targetParams.angleA * Math.PI / 180,
+                    β: this.targetParams.angleB * Math.PI / 180,
+                    R: this.targetParams.circumradius || 1.0
+                });
+            }
+            
+            // 2. Равносторонний треугольник
+            guesses.push({
+                α: Math.PI/3,
+                β: Math.PI/3,
+                R: 1.0
+            });
+            
+            // 3. Прямоугольный треугольник
+            guesses.push({
+                α: Math.PI/2,
+                β: Math.PI/4,
+                R: 1.0
+            });
+            
+            // 4. Случайные предположения
+            for (let i = 0; i < 5; i++) {
+                guesses.push({
+                    α: 0.2 + Math.random() * (Math.PI - 0.4),
+                    β: 0.2 + Math.random() * (Math.PI - 0.4),
+                    R: 0.5 + Math.random() * 2.0
+                });
+            }
+            
+            return guesses;
+        }
+
+        async nelderMeadMultiStart(initialGuesses, maxIterations = 100) {
+            const solutions = [];
+            
+            for (const guess of initialGuesses) {
+                const solution = await this.nelderMeadOptimization(guess, maxIterations);
+                solutions.push(solution);
+                
+                // Ранний выход при достижении высокой точности
+                if (solution.error < 1e-8) {
+                    break;
+                }
+            }
+            
+            // Выбираем лучшее решение
+            let bestIndex = 0;
+            let bestError = Infinity;
+            
+            solutions.forEach((sol, idx) => {
+                if (sol.error < bestError) {
+                    bestError = sol.error;
+                    bestIndex = idx;
+                }
+            });
+            
+            return {
+                bestState: solutions[bestIndex].state,
+                bestError: bestError,
+                allSolutions: solutions
+            };
+        }
+
+        async nelderMeadOptimization(initialState, maxIterations) {
+            const α = 1.0;  // Reflection coefficient
+            const γ = 2.0;  // Expansion coefficient
+            const ρ = 0.5;  // Contraction coefficient
+            const σ = 0.5;  // Shrink coefficient
+            
+            // Создаем начальный симплекс
+            let simplex = [initialState];
+            
+            // Добавляем точки вокруг начальной
+            for (let i = 0; i < 3; i++) {
+                const point = {
+                    α: Math.max(0.01, Math.min(Math.PI - 0.02, initialState.α + (Math.random() - 0.5) * 0.2)),
+                    β: Math.max(0.01, Math.min(Math.PI - initialState.α - 0.01, initialState.β + (Math.random() - 0.5) * 0.2)),
+                    R: Math.max(0.001, Math.min(10.0, initialState.R * (1 + (Math.random() - 0.5) * 0.2)))
+                };
+                
+                point.params = calculateAllParamsFromAngles(point.α, point.β, point.R);
+                point.error = this.calculateError(point);
+                simplex.push(point);
+            }
+            
+            let iteration = 0;
+            
+            while (iteration < maxIterations) {
+                iteration++;
+                this.stats.totalIterations++;
+                
+                // Сортируем симплекс по ошибке
+                simplex.sort((a, b) => a.error - b.error);
+                
+                // Лучшая, средняя и худшая точки
+                const best = simplex[0];
+                const worst = simplex[simplex.length - 1];
+                const secondWorst = simplex[simplex.length - 2];
+                
+                // Центр тяжести (без худшей точки)
+                const centroid = this.calculateCentroid(simplex.slice(0, -1));
+                
+                // Отражение
+                const reflected = this.reflectPoint(worst, centroid, α);
+                reflected.error = this.calculateError(reflected);
+                
+                if (reflected.error < best.error) {
+                    // Расширение
+                    const expanded = this.reflectPoint(worst, centroid, γ);
+                    expanded.error = this.calculateError(expanded);
+                    
+                    if (expanded.error < reflected.error) {
+                        simplex[simplex.length - 1] = expanded;
+                    } else {
+                        simplex[simplex.length - 1] = reflected;
+                    }
+                } else if (reflected.error < secondWorst.error) {
+                    simplex[simplex.length - 1] = reflected;
+                } else {
+                    // Сжатие
+                    if (reflected.error < worst.error) {
+                        // Внешнее сжатие
+                        const contracted = this.reflectPoint(worst, centroid, ρ);
+                        contracted.error = this.calculateError(contracted);
+                        
+                        if (contracted.error < reflected.error) {
+                            simplex[simplex.length - 1] = contracted;
+                        } else {
+                            this.shrinkSimplex(simplex, best, σ);
+                        }
+                    } else {
+                        // Внутреннее сжатие
+                        const contracted = this.reflectPoint(worst, centroid, -ρ);
+                        contracted.error = this.calculateError(contracted);
+                        
+                        if (contracted.error < worst.error) {
+                            simplex[simplex.length - 1] = contracted;
+                        } else {
+                            this.shrinkSimplex(simplex, best, σ);
+                        }
+                    }
+                }
+                
+                // Обновление прогресса
+                if (iteration % 10 === 0) {
+                    const progress = 10 + (iteration / maxIterations) * 20;
+                    await this.progressCallback(
+                        progress, 
+                        iteration, 
+                        best.error,
+                        `Нелдер-Мида: ${best.error.toExponential(3)}`
+                    );
+                    
+                    // Критерий остановки
+                    const errorRange = simplex[simplex.length - 1].error - simplex[0].error;
+                    if (errorRange < 1e-12) break;
+                }
+            }
+            
+            simplex.sort((a, b) => a.error - b.error);
+            return {
+                state: simplex[0],
+                error: simplex[0].error,
+                iterations: iteration
+            };
+        }
+
+        async levenbergMarquardt(initialState, maxIterations = 50) {
+            let state = { ...initialState };
+            let λ = 0.001; // Параметр демпфирования
+            let iteration = 0;
+            let prevError = state.error;
+            
+            while (iteration < maxIterations) {
+                iteration++;
+                this.stats.totalIterations++;
+                
+                // Вычисление якобиана и невязок
+                const { J, residuals } = this.calculateJacobianAndResiduals(state);
+                
+                // Вычисление приближения Гессе: H = JᵀJ + λI
+                const JT = this.matrixTranspose(J);
+                const JTJ = this.matrixMultiply(JT, J);
+                const H = this.addDiagonal(JTJ, λ);
+                
+                // Градиент: g = Jᵀr
+                const g = this.matrixVectorMultiply(JT, residuals);
+                
+                // Решаем систему HΔ = -g
+                const Δ = this.solveLinearSystem(H, this.vectorNegate(g));
+                
+                if (!Δ) {
+                    λ *= 10;
+                    continue;
+                }
+                
+                // Пробуем новый шаг
+                const newState = {
+                    α: state.α + Δ[0],
+                    β: state.β + Δ[1],
+                    R: state.R * (1 + Δ[2] * 0.1) // Меньший шаг для радиуса
+                };
+                
+                // Ограничения
+                newState.α = Math.max(0.01, Math.min(Math.PI - 0.02, newState.α));
+                newState.β = Math.max(0.01, Math.min(Math.PI - newState.α - 0.01, newState.β));
+                newState.R = Math.max(0.001, Math.min(10.0, newState.R));
+                
+                // Пересчет параметров и ошибки
+                newState.params = calculateAllParamsFromAngles(newState.α, newState.β, newState.R);
+                newState.error = this.calculateError(newState);
+                
+                // Адаптация λ
+                if (newState.error < state.error) {
+                    // Успешный шаг
+                    state = newState;
+                    λ *= 0.1;
+                    prevError = state.error;
+                    
+                    // Сохраняем историю сходимости
+                    this.stats.convergenceHistory.push({
+                        iteration: this.stats.totalIterations,
+                        error: state.error,
+                        λ: λ
+                    });
+                } else {
+                    // Неудачный шаг
+                    λ *= 10;
+                }
+                
+                // Обновление прогресса
+                if (iteration % 5 === 0) {
+                    const progress = 40 + (iteration / maxIterations) * 30;
+                    await this.progressCallback(
+                        progress, 
+                        iteration, 
+                        state.error,
+                        `Левенберг-Марквардт: ${state.error.toExponential(6)}`
+                    );
+                    
+                    // Критерии остановки
+                    if (state.error < 1e-12) break;
+                    if (λ > 1e6) break;
+                    if (Math.abs(prevError - state.error) < 1e-15) break;
+                }
+            }
+            
+            return {
+                state: state,
+                error: state.error,
+                iterations: iteration
+            };
+        }
+
+        async goldenSectionRefinement(solution, maxIterations = 20) {
+            let state = { ...solution.state };
+            const φ = (1 + Math.sqrt(5)) / 2; // Золотое сечение
+            const tolerance = 1e-10;
+            
+            // Поочередно уточняем каждый параметр
+            
+            // 1. Уточнение α
+            let [a, b] = [state.α * 0.999, state.α * 1.001];
+            let [c, d] = [b - (b - a) / φ, a + (b - a) / φ];
+            
+            for (let i = 0; i < maxIterations; i++) {
+                const stateC = { ...state, α: c };
+                stateC.params = calculateAllParamsFromAngles(stateC.α, stateC.β, stateC.R);
+                stateC.error = this.calculateError(stateC);
+                
+                const stateD = { ...state, α: d };
+                stateD.params = calculateAllParamsFromAngles(stateD.α, stateD.β, stateD.R);
+                stateD.error = this.calculateError(stateD);
+                
+                if (stateC.error < stateD.error) {
+                    b = d;
+                } else {
+                    a = c;
+                }
+                
+                c = b - (b - a) / φ;
+                d = a + (b - a) / φ;
+                
+                if (Math.abs(c - d) < tolerance) break;
+            }
+            
+            state.α = (a + b) / 2;
+            
+            // 2. Уточнение β
+            [a, b] = [state.β * 0.999, state.β * 1.001];
+            [c, d] = [b - (b - a) / φ, a + (b - a) / φ];
+            
+            for (let i = 0; i < maxIterations; i++) {
+                const stateC = { ...state, β: c };
+                stateC.params = calculateAllParamsFromAngles(stateC.α, stateC.β, stateC.R);
+                stateC.error = this.calculateError(stateC);
+                
+                const stateD = { ...state, β: d };
+                stateD.params = calculateAllParamsFromAngles(stateD.α, stateD.β, stateD.R);
+                stateD.error = this.calculateError(stateD);
+                
+                if (stateC.error < stateD.error) {
+                    b = d;
+                } else {
+                    a = c;
+                }
+                
+                c = b - (b - a) / φ;
+                d = a + (b - a) / φ;
+                
+                if (Math.abs(c - d) < tolerance) break;
+            }
+            
+            state.β = (a + b) / 2;
+            
+            // 3. Уточнение R
+            [a, b] = [state.R * 0.999, state.R * 1.001];
+            [c, d] = [b - (b - a) / φ, a + (b - a) / φ];
+            
+            for (let i = 0; i < maxIterations; i++) {
+                const stateC = { ...state, R: c };
+                stateC.params = calculateAllParamsFromAngles(stateC.α, stateC.β, stateC.R);
+                stateC.error = this.calculateError(stateC);
+                
+                const stateD = { ...state, R: d };
+                stateD.params = calculateAllParamsFromAngles(stateD.α, stateD.β, stateD.R);
+                stateD.error = this.calculateError(stateD);
+                
+                if (stateC.error < stateD.error) {
+                    b = d;
+                } else {
+                    a = c;
+                }
+                
+                c = b - (b - a) / φ;
+                d = a + (b - a) / φ;
+                
+                if (Math.abs(c - d) < tolerance) break;
+            }
+            
+            state.R = (a + b) / 2;
+            
+            // Финальный пересчет
+            state.params = calculateAllParamsFromAngles(state.α, state.β, state.R);
+            state.error = this.calculateError(state);
+            
+            return {
+                state: state,
+                error: state.error
+            };
+        }
+
+        async finalPrecisionCheck(solution, maxIterations = 10) {
+            let state = { ...solution.state };
+            let bestState = { ...state };
+            let bestError = state.error;
+            
+            // Многократные микро-корректировки
+            for (let i = 0; i < maxIterations; i++) {
+                // Пробуем микро-вариации
+                const variations = [];
+                
+                for (let j = 0; j < 8; j++) {
+                    const variation = {
+                        α: state.α * (1 + (Math.random() - 0.5) * 1e-6),
+                        β: state.β * (1 + (Math.random() - 0.5) * 1e-6),
+                        R: state.R * (1 + (Math.random() - 0.5) * 1e-6)
+                    };
+                    
+                    // Ограничения
+                    variation.α = Math.max(0.01, Math.min(Math.PI - 0.02, variation.α));
+                    variation.β = Math.max(0.01, Math.min(Math.PI - variation.α - 0.01, variation.β));
+                    variation.R = Math.max(0.001, Math.min(10.0, variation.R));
+                    
+                    variation.params = calculateAllParamsFromAngles(variation.α, variation.β, variation.R);
+                    variation.error = this.calculateError(variation);
+                    variations.push(variation);
+                }
+                
+                // Находим лучшую вариацию
+                variations.sort((a, b) => a.error - b.error);
+                
+                if (variations[0].error < bestError) {
+                    bestState = variations[0];
+                    bestError = variations[0].error;
+                    state = bestState;
+                }
+                
+                // Обновление прогресса
+                await this.progressCallback(
+                    90 + (i / maxIterations) * 5, 
+                    i, 
+                    bestError,
+                    `Финальная проверка: ${bestError.toExponential(8)}`
+                );
+                
+                if (bestError < 1e-12) break;
+            }
+            
+            return {
+                state: bestState,
+                error: bestError
+            };
+        }
+
+        calculateError(state) {
+            return calculateErrorWithScale(state.params, this.targetParams);
+        }
+
+        calculateCentroid(points) {
+            const centroid = { α: 0, β: 0, R: 0 };
+            
+            points.forEach(point => {
+                centroid.α += point.α;
+                centroid.β += point.β;
+                centroid.R += point.R;
+            });
+            
+            centroid.α /= points.length;
+            centroid.β /= points.length;
+            centroid.R /= points.length;
+            
+            return centroid;
+        }
+
+        reflectPoint(point, centroid, coefficient) {
+            const reflected = {
+                α: centroid.α + coefficient * (centroid.α - point.α),
+                β: centroid.β + coefficient * (centroid.β - point.β),
+                R: centroid.R + coefficient * (centroid.R - point.R)
+            };
+            
+            // Ограничения
+            reflected.α = Math.max(0.01, Math.min(Math.PI - 0.02, reflected.α));
+            reflected.β = Math.max(0.01, Math.min(Math.PI - reflected.α - 0.01, reflected.β));
+            reflected.R = Math.max(0.001, Math.min(10.0, reflected.R));
+            
+            return reflected;
+        }
+
+        shrinkSimplex(simplex, best, coefficient) {
+            for (let i = 1; i < simplex.length; i++) {
+                simplex[i] = {
+                    α: best.α + coefficient * (simplex[i].α - best.α),
+                    β: best.β + coefficient * (simplex[i].β - best.β),
+                    R: best.R + coefficient * (simplex[i].R - best.R)
+                };
+                
+                // Ограничения
+                simplex[i].α = Math.max(0.01, Math.min(Math.PI - 0.02, simplex[i].α));
+                simplex[i].β = Math.max(0.01, Math.min(Math.PI - simplex[i].α - 0.01, simplex[i].β));
+                simplex[i].R = Math.max(0.001, Math.min(10.0, simplex[i].R));
+                
+                simplex[i].params = calculateAllParamsFromAngles(simplex[i].α, simplex[i].β, simplex[i].R);
+                simplex[i].error = this.calculateError(simplex[i]);
+            }
+        }
+
+        calculateJacobianAndResiduals(state) {
+            const paramKeys = Object.keys(this.targetParams);
+            const J = [];
+            const residuals = [];
+            
+            // Инициализация якобиана (3 x N)
+            for (let i = 0; i < 3; i++) {
+                J.push(new Array(paramKeys.length).fill(0));
+            }
+            
+            const δ = 1e-7; // Очень маленький шаг для высокой точности
+            const currentParams = state.params;
+            
+            paramKeys.forEach((key, col) => {
+                const targetValue = this.targetParams[key];
+                const currentValue = parseFloat(currentParams[key]);
+                
+                // Вычисление невязки
+                let residual;
+                if (key.includes('angle')) {
+                  const diff = Math.abs(currentValue - targetValue);
+                  residual = Math.min(diff, 360 - diff) / 180.0;
+                } else {
+                  residual = Math.abs(currentValue - targetValue) / Math.max(Math.abs(targetValue), 1e-10);
+                }
+                residuals.push(residual);
+                
+                // Производная по α
+                const stateα = { ...state, α: state.α + δ };
+                stateα.params = calculateAllParamsFromAngles(stateα.α, stateα.β, stateα.R);
+                const valueα = parseFloat(stateα.params[key]);
+                J[0][col] = (valueα - currentValue) / δ;
+                
+                // Производная по β
+                const stateβ = { ...state, β: state.β + δ };
+                stateβ.params = calculateAllParamsFromAngles(stateβ.α, stateβ.β, stateβ.R);
+                const valueβ = parseFloat(stateβ.params[key]);
+                J[1][col] = (valueβ - currentValue) / δ;
+                
+                // Производная по R
+                const stateR = { ...state, R: state.R * (1 + δ) };
+                stateR.params = calculateAllParamsFromAngles(stateR.α, stateR.β, stateR.R);
+                const valueR = parseFloat(stateR.params[key]);
+                J[2][col] = (valueR - currentValue) / (δ * state.R);
+            });
+            
+            return { J, residuals };
+        }
+
+        // Вспомогательные матричные операции
+        matrixTranspose(M) {
+            const rows = M.length, cols = M[0].length;
+            const result = new Array(cols);
+            
+            for (let j = 0; j < cols; j++) {
+                result[j] = new Array(rows);
+                for (let i = 0; i < rows; i++) {
+                    result[j][i] = M[i][j];
+                }
+            }
+            
+            return result;
+        }
+
+        matrixMultiply(A, B) {
+            const rowsA = A.length, colsA = A[0].length, colsB = B[0].length;
+            const result = new Array(rowsA);
+            
+            for (let i = 0; i < rowsA; i++) {
+                result[i] = new Array(colsB);
+                for (let j = 0; j < colsB; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < colsA; k++) {
+                        sum += A[i][k] * B[k][j];
+                    }
+                    result[i][j] = sum;
+                }
+            }
+            
+            return result;
+        }
+
+        matrixVectorMultiply(M, v) {
+            const rows = M.length;
+            const result = new Array(rows);
+            
+            for (let i = 0; i < rows; i++) {
+                let sum = 0;
+                for (let j = 0; j < v.length; j++) {
+                    sum += M[i][j] * v[j];
+                }
+                result[i] = sum;
+            }
+            
+            return result;
+        }
+
+        addDiagonal(M, λ) {
+            const n = M.length;
+            const result = [];
+            
+            for (let i = 0; i < n; i++) {
+                result[i] = [...M[i]];
+                result[i][i] += λ;
+            }
+            
+            return result;
+        }
+
+        vectorNegate(v) {
+            return v.map(x => -x);
+        }
+
+        solveLinearSystem(A, b) {
+            const n = A.length;
+            const Ab = [];
+            
+            // Создаем расширенную матрицу
+            for (let i = 0; i < n; i++) {
+                Ab[i] = [...A[i], b[i]];
+            }
+            
+            // Метод Гаусса с выбором главного элемента
+            for (let i = 0; i < n; i++) {
+                // Поиск максимального элемента
+                let maxRow = i;
+                let maxVal = Math.abs(Ab[i][i]);
+                
+                for (let j = i + 1; j < n; j++) {
+                    if (Math.abs(Ab[j][i]) > maxVal) {
+                        maxRow = j;
+                        maxVal = Math.abs(Ab[j][i]);
+                    }
+                }
+                
+                if (maxVal < 1e-15) return null;
+                
+                // Перестановка строк
+                if (maxRow !== i) {
+                    [Ab[i], Ab[maxRow]] = [Ab[maxRow], Ab[i]];
+                }
+                
+                // Нормировка
+                const pivot = Ab[i][i];
+                for (let j = i; j <= n; j++) {
+                    Ab[i][j] /= pivot;
+                }
+                
+                // Исключение
+                for (let j = i + 1; j < n; j++) {
+                    const factor = Ab[j][i];
+                    for (let k = i; k <= n; k++) {
+                        Ab[j][k] -= factor * Ab[i][k];
+                    }
+                }
+            }
+            
+            // Обратная подстановка
+            const x = new Array(n);
+            for (let i = n - 1; i >= 0; i--) {
+                x[i] = Ab[i][n];
+                for (let j = i + 1; j < n; j++) {
+                    x[i] -= Ab[i][j] * x[j];
+                }
+            }
+            
+            return x;
+        }
+
+        prepareFinalSolution(solution) {
+            const finalPoints = calculateTrianglePoints(solution.state.α, solution.state.β, solution.state.R);
+            
+            const finalSolution = {
+                points: finalPoints,
+                params: solution.state.params,
+                scale: solution.state.R,
+                angles: {
+                    α: solution.state.α * 180 / Math.PI,
+                    β: solution.state.β * 180 / Math.PI,
+                    γ: (Math.PI - solution.state.α - solution.state.β) * 180 / Math.PI
+                },
+                type: determineTriangleType(solution.state.params),
+                error: solution.error,
+                iterations: this.stats.totalIterations,
+                stats: {
+                    ...this.stats,
+                    totalTime: Date.now() - this.stats.startTime,
+                    finalPrecision: 100 - solution.error * 100
+                }
+            };
+            
+            return finalSolution;
+        }
+    }
+
+    async function optimizeTriangleHighPrecision(targetParams, progressCallback, seedState = null) {
+        showStatusMessage('Запуск высокоточного алгоритма...', 'info');
+        
+        const optimizer = new HighPrecisionOptimizer(targetParams,
+            async (progress, iteration, error, status) => {
+                progressCallback(progress, iteration, error, status);
+            }
+        , seedState);
+        
+        const solution = await optimizer.optimize();
+        
+        // Вычисляем точность в процентах
+        const accuracy = Math.max(0, 100 - solution.error * 100);
+        
+        if (accuracy >= 99.999) {
+            showStatusMessage(`✅ СУПЕР-ТОЧНОСТЬ: ${accuracy.toFixed(6)}%`, 'success');
+        } else if (accuracy >= 99.99) {
+            showStatusMessage(`✅ Очень высокая точность: ${accuracy.toFixed(4)}%`, 'success');
+        } else if (accuracy >= 99.9) {
+            showStatusMessage(`✅ Высокая точность: ${accuracy.toFixed(3)}%`, 'success');
+        } else if (accuracy >= 99.0) {
+            showStatusMessage(`⚠ Хорошая точность: ${accuracy.toFixed(2)}%`, 'warning');
+        } else {
+            showStatusMessage(`❌ Недостаточная точность: ${accuracy.toFixed(2)}%`, 'error');
+        }
+        
+        return solution;
+    }
+
+
+    
+    // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+    
+    function calculateErrorWithScale(currentParams, targetParams) {
+      let totalError = 0;
+      let weight = 0;
+      const ε = 1e-10;
+      
+      for (const [key, targetValue] of Object.entries(targetParams)) {
+        const currentValue = parseFloat(currentParams[key]);
+        
+        if (isNaN(currentValue)) {
+          totalError += 1.0;
+          weight += 1;
+          continue;
+        }
+        
+        let error;
+        
+        if (key.includes('angle')) {
+          const diff = Math.abs(currentValue - targetValue);
+          error = Math.min(diff, 360 - diff) / 180.0;
+        } else if (key === 'circumradius') {
+          const denominator = Math.max(Math.abs(targetValue), ε);
+          error = Math.abs((currentValue - targetValue) / denominator);
+        } else {
+          const denominator = Math.max(Math.abs(targetValue), ε);
+          error = Math.abs((currentValue - targetValue) / denominator);
+        }
+        
+        const paramWeight = key.includes('angle') ? 2.0 : 
+                           key === 'circumradius' ? 4.0 : 1.0;
+        totalError += error * paramWeight;
+        weight += paramWeight;
+      }
+      
+      return weight > 0 ? totalError / weight : Infinity;
     }
     
     // ========== ФУНКЦИЯ ДЛЯ ПРЕДВАРИТЕЛЬНОЙ ПРОВЕРКИ ==========
@@ -1308,7 +2779,7 @@
       };
     }
     
-    // ========== ОТОБРАЖЕНИЕ СООБЩЕНИЙ (ОСТАЮТСЯ В ИНТЕРФЕЙСЕ) ==========
+    // ========== ОТОБРАЖЕНИЕ СООБЩЕНИЙ ==========
     function showErrorMessage(message, persist = false) {
       const errorDiv = document.getElementById('errorMessage');
       errorDiv.innerHTML = `
@@ -1414,401 +2885,17 @@
       updateStatusPanel();
     }
     
-    // ========== УЛУЧШЕННЫЙ ОПТИМИЗАТОР ==========
-    async function optimizeTriangleWithScaleEnhanced(targetParams, progressCallback) {
-      return new Promise((resolve, reject) => {
-        try {
-          // ПРОВЕРКА ЧИСЛЕННОЙ СТАБИЛЬНОСТИ ПЕРЕД НАЧАЛОМ
-          const numericalCheck = checkNumericalFeasibility(targetParams);
-          if (!numericalCheck.feasible) {
-            reject(new Error(`Параметры численно нестабильны:\n• ${numericalCheck.issues.join('\n• ')}`));
-            return;
-          }
-          
-          // ПРОВЕРКА ПРАКТИЧЕСКОЙ РЕАЛИЗУЕМОСТИ
-          const practicalCheck = checkPracticalFeasibility(targetParams);
-          if (!practicalCheck.feasible) {
-            reject(new Error(`Параметры нереализуемы на практике:\n• ${practicalCheck.errors.join('\n• ')}`));
-            return;
-          }
-          
-          // Показать предупреждения если есть
-          if (practicalCheck.warnings.length > 0) {
-            practicalCheck.warnings.forEach(warning => {
-              showStatusMessage(warning, 'warning');
-            });
-          }
-          
-          const MAX_ITERATIONS = 8000;
-          const TARGET_ERROR = 1e-12;
-          
-          let bestSolution = null;
-          let bestError = Infinity;
-          let stagnationCounter = 0;
-          let lastImprovement = 0;
-          
-          // Определяем, задан ли радиус описанной окружности
-          const hasCircumradius = targetParams.circumradius !== undefined;
-          
-          // Если задан радиус, используем его как начальный масштаб
-          let initialScale = 1.0;
-          if (hasCircumradius) {
-            initialScale = Math.max(0.1, Math.min(10.0, targetParams.circumradius));
-          }
-          
-          // РАЗНООБРАЗНЫЕ НАЧАЛЬНЫЕ ТОЧКИ ДЛЯ ПОИСКА
-          const initialPoints = [
-            // Базовые точки
-            {α: Math.PI/3, β: Math.PI/3, scale: initialScale}, // Равносторонний
-            {α: Math.PI/2, β: Math.PI/4, scale: initialScale}, // Прямоугольный
-            {α: Math.PI*0.4, β: Math.PI*0.4, scale: initialScale}, // Остроугольный
-            {α: Math.PI*0.2, β: Math.PI*0.3, scale: initialScale}, // Разносторонний
-            
-            // Дополнительные точки для сложных случаев
-            {α: Math.PI*0.7, β: Math.PI*0.2, scale: initialScale}, // Тупоугольный
-            {α: Math.PI*0.1, β: Math.PI*0.1, scale: initialScale}, // Очень острый
-            {α: Math.PI*0.8, β: Math.PI*0.1, scale: initialScale}, // Очень тупой
-            
-            // Случайные точки для глобального поиска
-            ...Array(3).fill(0).map(() => ({
-              α: 0.1 + Math.random() * (Math.PI - 0.2),
-              β: 0.1 + Math.random() * (Math.PI - 0.2),
-              scale: initialScale * (0.5 + Math.random())
-            }))
-          ];
-          
-          let completedRuns = 0;
-          let totalIterations = 0;
-          
-          initialPoints.forEach((initialPoint, runIndex) => {
-            setTimeout(() => {
-              try {
-                let α = initialPoint.α;
-                let β = initialPoint.β;
-                let scale = initialPoint.scale;
-                
-                let localBestError = Infinity;
-                let localBestSolution = null;
-                let localStagnation = 0;
-                
-                function optimizationStep(iteration) {
-                  if (totalIterations >= MAX_ITERATIONS) {
-                    completedRuns++;
-                    checkAllRunsCompleted();
-                    return;
-                  }
-                  
-                  totalIterations++;
-                  
-                  try {
-                    // Ограничиваем углы с запасом
-                    α = Math.max(0.005, Math.min(Math.PI - 0.01, α));
-                    β = Math.max(0.005, Math.min(Math.PI - α - 0.005, β));
-                    
-                    const γ = Math.PI - α - β;
-                    
-                    if (γ < 0.005 || γ > Math.PI - 0.005) {
-                      // Перезапуск с новой случайной точки
-                      α = 0.1 + Math.random() * (Math.PI - 0.2);
-                      β = 0.1 + Math.random() * (Math.PI - α - 0.1);
-                      setTimeout(() => optimizationStep(iteration), 0);
-                      return;
-                    }
-                    
-                    // Вычисляем параметры с текущим масштабом
-                    const currentParams = calculateAllParamsFromAngles(α, β, scale);
-                    
-                    // Вычисляем ошибку
-                    let error = calculateErrorWithScale(currentParams, targetParams);
-                    
-                    // Если задан радиус описанной, добавляем дополнительный вес к ошибке
-                    if (hasCircumradius) {
-                      const targetR = targetParams.circumradius;
-                      const circumError = Math.abs(scale - targetR) / Math.max(0.1, targetR);
-                      error += circumError * 3.0;
-                    }
-                    
-                    // Проверка на улучшение
-                    if (error < localBestError) {
-                      localBestError = error;
-                      localBestSolution = {
-                        points: calculateTrianglePoints(α, β, scale),
-                        params: currentParams,
-                        scale: scale,
-                        angles: {
-                          α: α * 180 / Math.PI,
-                          β: β * 180 / Math.PI,
-                          γ: γ * 180 / Math.PI
-                        },
-                        type: determineTriangleType(currentParams),
-                        error: error,
-                        iterations: totalIterations
-                      };
-                      localStagnation = 0;
-                      
-                      // Обновляем глобальное лучшее решение
-                      if (error < bestError) {
-                        bestError = error;
-                        bestSolution = localBestSolution;
-                        stagnationCounter = 0;
-                        lastImprovement = totalIterations;
-                      }
-                    } else {
-                      localStagnation++;
-                    }
-                    
-                    // Проверка на застой в локальном поиске
-                    if (localStagnation > 100) {
-                      completedRuns++;
-                      checkAllRunsCompleted();
-                      return;
-                    }
-                    
-                    // Проверка на глобальный застой
-                    if (totalIterations - lastImprovement > 1000) {
-                      stagnationCounter++;
-                      if (stagnationCounter > 3) {
-                        completedRuns = initialPoints.length;
-                        checkAllRunsCompleted();
-                        return;
-                      }
-                    }
-                    
-                    // Обновляем прогресс
-                    const progress = Math.min(100, (totalIterations / MAX_ITERATIONS) * 100);
-                    progressCallback(progress, totalIterations, error);
-                    
-                    // КРИТЕРИЙ ОСТАНОВА
-                    if (error < TARGET_ERROR) {
-                      bestError = error;
-                      bestSolution = localBestSolution;
-                      completedRuns = initialPoints.length;
-                      checkAllRunsCompleted();
-                      return;
-                    }
-                    
-                    // Определяем, есть ли застой
-                    const hasStagnated = localStagnation > 20;
-                    
-                    // Вычисляем адаптивную скорость обучения
-                    const currentLR = adaptiveLearningRate(error, iteration, hasStagnated);
-                    
-                    // Вычисляем градиенты с центральными разностями
-                    const delta = 1e-6;
-                    
-                    // Градиент для α
-                    const αPlus = calculateAllParamsFromAngles(α + delta, β, scale);
-                    const αMinus = calculateAllParamsFromAngles(α - delta, β, scale);
-                    const errorαPlus = calculateErrorWithScale(αPlus, targetParams);
-                    const errorαMinus = calculateErrorWithScale(αMinus, targetParams);
-                    const gradα = (errorαPlus - errorαMinus) / (2 * delta);
-                    
-                    // Градиент для β
-                    const βPlus = calculateAllParamsFromAngles(α, β + delta, scale);
-                    const βMinus = calculateAllParamsFromAngles(α, β - delta, scale);
-                    const errorβPlus = calculateErrorWithScale(βPlus, targetParams);
-                    const errorβMinus = calculateErrorWithScale(βMinus, targetParams);
-                    const gradβ = (errorβPlus - errorβMinus) / (2 * delta);
-                    
-                    // Градиент для масштаба
-                    let gradScale = 0;
-                    if (hasCircumradius) {
-                      const targetR = targetParams.circumradius;
-                      const scaleDiff = scale - targetR;
-                      gradScale = scaleDiff / (Math.abs(targetR) + 1e-10);
-                      
-                      const scalePlus = calculateAllParamsFromAngles(α, β, scale + delta);
-                      const scaleMinus = calculateAllParamsFromAngles(α, β, scale - delta);
-                      const errorScalePlus = calculateErrorWithScale(scalePlus, targetParams);
-                      const errorScaleMinus = calculateErrorWithScale(scaleMinus, targetParams);
-                      const numericGrad = (errorScalePlus - errorScaleMinus) / (2 * delta);
-                      gradScale += numericGrad * 0.5;
-                    } else {
-                      const scalePlus = calculateAllParamsFromAngles(α, β, scale + delta);
-                      const scaleMinus = calculateAllParamsFromAngles(α, β, scale - delta);
-                      const errorScalePlus = calculateErrorWithScale(scalePlus, targetParams);
-                      const errorScaleMinus = calculateErrorWithScale(scaleMinus, targetParams);
-                      gradScale = (errorScalePlus - errorScaleMinus) / (2 * delta);
-                    }
-                    
-                    // Применяем моментум для стабилизации
-                    let momentumα = 0;
-                    let momentumβ = 0;
-                    let momentumScale = 0;
-                    const momentumFactor = 0.9;
-                    
-                    // Обновляем параметры с моментумом
-                    momentumα = momentumFactor * momentumα + currentLR * gradα;
-                    momentumβ = momentumFactor * momentumβ + currentLR * gradβ;
-                    momentumScale = momentumFactor * momentumScale + currentLR * gradScale;
-                    
-                    α -= momentumα;
-                    β -= momentumβ;
-                    scale -= momentumScale;
-                    
-                    // Ограничиваем значения
-                    α = Math.max(0.005, Math.min(Math.PI - 0.01, α));
-                    β = Math.max(0.005, Math.min(Math.PI - α - 0.005, β));
-                    
-                    if (hasCircumradius) {
-                      const targetR = targetParams.circumradius;
-                      // Мягкая регуляризация к целевому радиусу
-                      scale = scale * 0.9 + targetR * 0.1;
-                    }
-                    
-                    scale = Math.max(0.001, Math.min(100.0, scale));
-                    
-                    // Следующая итерация
-                    setTimeout(() => optimizationStep(iteration + 1), 0);
-                    
-                  } catch (error) {
-                    console.warn('Ошибка в шаге оптимизации:', error);
-                    completedRuns++;
-                    checkAllRunsCompleted();
-                  }
-                }
-                
-                optimizationStep(0);
-                
-              } catch (error) {
-                console.warn('Ошибка в запуске оптимизации:', error);
-                completedRuns++;
-                checkAllRunsCompleted();
-              }
-            }, runIndex * 50);
-          });
-          
-          function checkAllRunsCompleted() {
-            if (completedRuns >= initialPoints.length) {
-              if (bestSolution && bestError < 0.05) {
-                // Корректируем финальное решение, если задан радиус
-                if (hasCircumradius) {
-                  const targetR = targetParams.circumradius;
-                  const α = bestSolution.angles.α * Math.PI / 180;
-                  const β = bestSolution.angles.β * Math.PI / 180;
-                  
-                  bestSolution.params = calculateAllParamsFromAngles(α, β, targetR);
-                  bestSolution.points = calculateTrianglePoints(α, β, targetR);
-                  bestSolution.scale = targetR;
-                  bestSolution.error = calculateErrorWithScale(bestSolution.params, targetParams);
-                }
-                
-                // Дополнительная тонкая настройка
-                bestSolution = fineTuneSolution(bestSolution, targetParams);
-                
-                resolve(bestSolution);
-              } else {
-                reject(new Error(`Решение не найдено. Лучшая ошибка: ${bestError.toFixed(6)}. Возможно, параметры несовместимы или требуют более точного решения.`));
-              }
-            }
-          }
-          
-        } catch (error) {
-          reject(error);
-        }
-      });
-    }
-    
-    function calculateErrorWithScale(currentParams, targetParams) {
-      let totalError = 0;
-      let weight = 0;
-      const ε = 1e-10;
-      
-      for (const [key, targetValue] of Object.entries(targetParams)) {
-        const currentValue = parseFloat(currentParams[key]);
-        
-        if (isNaN(currentValue)) {
-          totalError += 1.0;
-          weight += 1;
-          continue;
-        }
-        
-        let error;
-        
-        if (key.includes('angle')) {
-          const diff = Math.abs(currentValue - targetValue);
-          error = Math.min(diff, 360 - diff) / 180.0;
-        } else if (key === 'circumradius') {
-          const denominator = Math.max(Math.abs(targetValue), ε);
-          error = Math.abs((currentValue - targetValue) / denominator);
-        } else {
-          const denominator = Math.max(Math.abs(targetValue), ε);
-          error = Math.abs((currentValue - targetValue) / denominator);
-        }
-        
-        const paramWeight = key.includes('angle') ? 2.0 : 
-                           key === 'circumradius' ? 4.0 : 1.0;
-        totalError += error * paramWeight;
-        weight += paramWeight;
-      }
-      
-      return weight > 0 ? totalError / weight : Infinity;
-    }
-    
-    // ========== ФУНКЦИЯ ТОНКОЙ НАСТРОЙКИ РЕШЕНИЯ ==========
-    function fineTuneSolution(solution, targetParams) {
-      if (!solution || solution.error < 1e-6) return solution;
-      
-      const MAX_FINE_TUNE_ITERATIONS = 1000;
-      const FINE_TUNE_LR = 0.001;
-      
-      let α = solution.angles.α * Math.PI / 180;
-      let β = solution.angles.β * Math.PI / 180;
-      let scale = solution.scale;
-      
-      for (let i = 0; i < MAX_FINE_TUNE_ITERATIONS; i++) {
-        // Ограничиваем углы
-        α = Math.max(0.01, Math.min(Math.PI - 0.02, α));
-        β = Math.max(0.01, Math.min(Math.PI - α - 0.01, β));
-        
-        const currentParams = calculateAllParamsFromAngles(α, β, scale);
-        const error = calculateErrorWithScale(currentParams, targetParams);
-        
-        if (error < solution.error) {
-          solution = {
-            points: calculateTrianglePoints(α, β, scale),
-            params: currentParams,
-            scale: scale,
-            angles: {
-              α: α * 180 / Math.PI,
-              β: β * 180 / Math.PI,
-              γ: (Math.PI - α - β) * 180 / Math.PI
-            },
-            type: determineTriangleType(currentParams),
-            error: error,
-            iterations: solution.iterations + i + 1
-          };
-        }
-        
-        if (error < 1e-8) break;
-        
-        // Градиенты для тонкой настройки
-        const delta = 1e-8;
-        
-        const αPlus = calculateAllParamsFromAngles(α + delta, β, scale);
-        const αMinus = calculateAllParamsFromAngles(α - delta, β, scale);
-        const errorαPlus = calculateErrorWithScale(αPlus, targetParams);
-        const errorαMinus = calculateErrorWithScale(αMinus, targetParams);
-        const gradα = (errorαPlus - errorαMinus) / (2 * delta);
-        
-        const βPlus = calculateAllParamsFromAngles(α, β + delta, scale);
-        const βMinus = calculateAllParamsFromAngles(α, β - delta, scale);
-        const errorβPlus = calculateErrorWithScale(βPlus, targetParams);
-        const errorβMinus = calculateErrorWithScale(βMinus, targetParams);
-        const gradβ = (errorβPlus - errorβMinus) / (2 * delta);
-        
-        α -= FINE_TUNE_LR * gradα;
-        β -= FINE_TUNE_LR * gradβ;
-      }
-      
-      return solution;
-    }
-    
     // ========== ОСНОВНЫЕ ФУНКЦИИ ==========
     function startSolvingEnhanced() {
       if (isFindingAll) return;
       closeSolutionsPanel();
       hideCompatibilityPanel();
+      
+      // Если уже идет расчет - выходим
+      const solveBtn = document.getElementById('solveBtn');
+      if (solveBtn.textContent === 'Вычисление...') {
+        return;
+      }
       
       if (!validateParameterSelection()) return;
       
@@ -1827,7 +2914,6 @@
         });
       }
       
-      const solveBtn = document.getElementById('solveBtn');
       solveBtn.disabled = true;
       solveBtn.textContent = 'Вычисление...';
       
@@ -1837,19 +2923,25 @@
       const statusText = document.getElementById('statusText');
       
       progressContainer.style.display = 'block';
-      progressText.textContent = 'Инициализация улучшенного оптимизатора...';
+      progressText.textContent = 'Запуск адаптивного алгоритма отжига...';
       statusText.textContent = 'Оптимизация...';
       statusText.style.color = '#f39c12';
       
+      // Очищаем таймер авторасчета
+      if (autoCalculateTimer) {
+        clearTimeout(autoCalculateTimer);
+        autoCalculateTimer = null;
+      }
+      
       setTimeout(async () => {
         try {
-          const solution = await optimizeTriangleWithScaleEnhanced(selectedParameters, (progress, iteration, error) => {
+          const solution = await optimizeTriangleWithSimulatedAnnealing(selectedParameters, (progress, iteration, error) => {
             progressBar.style.width = progress + '%';
-            let status = 'Итерация';
+            let status = 'Алгоритм отжига';
             if (error > 1.0) status = 'Глобальный поиск';
             else if (error > 0.1) status = 'Локальная оптимизация';
             else status = 'Тонкая настройка';
-            progressText.textContent = `${status}: ${iteration}, ошибка: ${error.toFixed(6)}`;
+            progressText.textContent = `${status}: ${iteration} итераций, ошибка: ${error.toFixed(6)}`;
           });
           
           displaySolution(solution);
@@ -3054,6 +4146,12 @@
       document.getElementById('validationPanel').style.display = 'none';
       document.getElementById('debugPanel').style.display = 'none';
       
+      // Очищаем таймер авторасчета
+      if (autoCalculateTimer) {
+        clearTimeout(autoCalculateTimer);
+        autoCalculateTimer = null;
+      }
+      
       if (chart) {
         chart.data.datasets = [
           {
@@ -3135,10 +4233,10 @@
       const progressText = document.getElementById('progressText');
       
       progressContainer.style.display = 'block';
-      progressText.textContent = 'Поиск всех решений (улучшенный алгоритм)...';
+      progressText.textContent = 'Поиск всех решений (алгоритм отжига)...';
       
       try {
-        const mainSolution = await optimizeTriangleWithScaleEnhanced(selectedParameters, (progress, iteration, error) => {
+        const mainSolution = await optimizeTriangleWithSimulatedAnnealing(selectedParameters, (progress, iteration, error) => {
           progressBar.style.width = Math.min(50, progress) + '%';
           progressText.textContent = `Основное решение: ${iteration} итераций, ошибка: ${error.toFixed(6)}`;
         });
@@ -3509,6 +4607,9 @@
       if (changedAny) {
         validateParameterSelection();
         showStatusMessage('Значения незафиксированных параметров обновлены', 'info');
+        
+        // Автоматический запуск расчета после изменения параметров
+        triggerAutoCalculate();
       } else {
         showStatusMessage('Все параметры зафиксированы', 'warning');
       }
@@ -3668,6 +4769,88 @@
           }
         });
       });
+    }
+    
+    // ========== ПРОВЕРКА ЧИСЛЕННОЙ УСТОЙЧИВОСТИ ==========
+    function checkNumericalFeasibility(params) {
+      const issues = [];
+      
+      // Проверка на NaN и бесконечности
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (isNaN(value)) {
+            issues.push(`Параметр ${getParameterName(key)} содержит NaN`);
+          }
+          if (!isFinite(value)) {
+            issues.push(`Параметр ${getParameterName(key)} содержит бесконечное значение`);
+          }
+        }
+      });
+      
+      // Проверка условий для численной стабильности
+      const definedAngles = [];
+      let anglesSum = 0;
+      
+      if (params.angleA) {
+        definedAngles.push('A');
+        anglesSum += params.angleA;
+      }
+      if (params.angleB) {
+        definedAngles.push('B');
+        anglesSum += params.angleB;
+      }
+      if (params.angleC) {
+        definedAngles.push('C');
+        anglesSum += params.angleC;
+      }
+      
+      if (definedAngles.length === 3) {
+        const angleError = Math.abs(anglesSum - 180);
+        if (angleError > 0.1) {
+          issues.push(`Сумма углов (${anglesSum.toFixed(2)}°) значительно отличается от 180° (ошибка: ${angleError.toFixed(2)}°)`);
+        }
+      }
+      
+      // Проверка на практически вырожденный треугольник
+      if (params.angleA && params.angleB && params.angleC) {
+        const minAngle = Math.min(params.angleA, params.angleB, params.angleC);
+        const maxAngle = Math.max(params.angleA, params.angleB, params.angleC);
+        
+        if (minAngle < 0.1) {
+          issues.push(`Минимальный угол (${minAngle.toFixed(2)}°) слишком мал для численной стабильности`);
+        }
+        
+        if (maxAngle > 179.9) {
+          issues.push(`Максимальный угол (${maxAngle.toFixed(2)}°) слишком близок к 180°`);
+        }
+        
+        // Проверка на почти прямолинейный треугольник
+        if (anglesSum > 179.9 && anglesSum < 180.1) {
+          if (maxAngle > 179.5 || minAngle < 0.5) {
+            issues.push("Треугольник практически вырожденный (один угол очень близок к 180°)");
+          }
+        }
+      }
+      
+      return {
+        feasible: issues.length === 0,
+        issues: issues
+      };
+    }
+    
+    // Функция для запуска авторасчета
+    function triggerAutoCalculate() {
+      // Очищаем предыдущий таймер
+      if (autoCalculateTimer) {
+        clearTimeout(autoCalculateTimer);
+      }
+      
+      // Запускаем расчет через 300мс (дебаунсинг)
+      autoCalculateTimer = setTimeout(() => {
+        if (validateParameterSelection() && !document.getElementById('solveBtn').disabled) {
+          startSolvingEnhanced();
+        }
+      }, 300);
     }
     
     // Регистрация плагина для аннотаций Chart.js
