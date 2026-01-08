@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -156,88 +156,88 @@
   </style>
 </head>
 <body>
-  <h1>🔺 Triangle Solver — Inverse Geometry Calculator</h1>
+  <h1>Triangle Solver — Inverse Geometry Calculator</h1>
   <div class="info-box">
-    <strong>Улучшенная система:</strong> Теперь включает проверку практической реализуемости, численной стабильности и адаптивную оптимизацию.
+    <strong>Enhanced system:</strong> Now includes practical feasibility checks, numerical stability, and adaptive optimization.
     <span id="allSolutionsInfo" style="display: none; color: #9b59b6; margin-left: 10px;">
-      | Найдено решений: <span id="solutionsCount">0</span>
+      | Solutions found: <span id="solutionsCount">0</span>
     </span>
   </div>
   
   <div class="container">
     <div class="panel visualization-panel">
-      <h2>Визуализация треугольника 
+      <h2>Triangle visualization 
         <span id="solutionIndicator" class="solution-indicator"></span>
       </h2>
       <div class="chart-container">
         <canvas id="triangleChart"></canvas>
         <div class="scale-control">
-          <h4 style="margin: 0 0 8px 0;">Вертикальный масштаб:</h4>
+          <h4 style="margin: 0 0 8px 0;">Vertical scale:</h4>
           <input type="range" class="scale-slider" id="yScale" min="40" max="200" step="10">
           <div class="scale-value">
-            Масштаб: <span id="yScaleLabel" class="percent"></span>%
+            Scale: <span id="yScaleLabel" class="percent"></span>%
           </div>
         </div>
       </div>
       <div class="result-info">
         <div class="result-row">
-          <span class="result-label">Статус:</span>
-          <span id="statusText" class="result-value">Ожидание входных данных</span>
+          <span class="result-label">Status:</span>
+          <span id="statusText" class="result-value">Waiting for input</span>
         </div>
         <div class="result-row">
-          <span class="result-label">Точность:</span>
+          <span class="result-label">Accuracy:</span>
           <span id="accuracyText" class="result-value">-</span>
         </div>
         <div class="result-row">
-          <span class="result-label">Итераций:</span>
+          <span class="result-label">Iterations:</span>
           <span id="iterationsText" class="result-value">0</span>
         </div>
         <div class="result-row">
-          <span class="result-label">Масштаб (R):</span>
+          <span class="result-label">Scale (R):</span>
           <span id="scaleText" class="result-value">1.00</span>
         </div>
         <div class="result-row angle-coords">
-          <span class="result-label">Угол A (α):</span>
+          <span class="result-label">Angle A (α):</span>
           <span id="angleAText" class="result-value">-</span>
         </div>
         <div class="result-row angle-coords">
-          <span class="result-label">Угол B (β):</span>
+          <span class="result-label">Angle B (β):</span>
           <span id="angleBText" class="result-value">-</span>
         </div>
         <div class="result-row angle-coords">
-          <span class="result-label">Угол C (γ):</span>
+          <span class="result-label">Angle C (γ):</span>
           <span id="angleCText" class="result-value">-</span>
         </div>
         <div class="result-row triangle-type">
-          <span class="result-label">Тип:</span>
+          <span class="result-label">Type:</span>
           <span id="triangleTypeText" class="result-value">-</span>
         </div>
       </div>
       
       <div id="statusPanel" class="status-panel" style="display: none;">
-        <h4 style="margin-top: 0; margin-bottom: 10px;">Статус и предупреждения</h4>
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Status and warnings</h4>
         <div id="statusMessages"></div>
       </div>
       
       <div id="debugPanel" class="debug-panel" style="display: none;">
-        <h4 style="margin-top: 0; margin-bottom: 10px;">Отладка координат</h4>
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Coordinate debugging</h4>
         <div id="debugResults"></div>
       </div>
     </div>
     
     <div class="panel control-panel">
-      <h2>Задание параметров</h2>
+      <h2>Parameter setup</h2>
       
       <div class="param-group">
         <div class="param-row" id="paramRow1">
           <div class="param-label">1.</div>
           <select class="param-select" id="param1">
-            <option value="">Выберите параметр...</option>
+            <option value="">Select parameter...</option>
           </select>
-          <input type="number" class="param-value" id="value1" step="0.001" placeholder="значение">
+          <input type="number" class="param-value" id="value1" step="0.001" placeholder="value">
           <div class="fix-checkbox-container">
-            <input type="checkbox" class="fix-checkbox" id="fixParam1" title="Зафиксировать значение">
-            <label for="fixParam1" class="fix-checkbox-label">Закрепить</label>
+            <input type="checkbox" class="fix-checkbox" id="fixParam1" title="Lock value">
+            <label for="fixParam1" class="fix-checkbox-label">Lock</label>
           </div>
         </div>
         <div class="slider-container" id="sliderContainer1" style="display: none;">
@@ -250,12 +250,12 @@
         <div class="param-row" id="paramRow2">
           <div class="param-label">2.</div>
           <select class="param-select" id="param2">
-            <option value="">Выберите параметр...</option>
+            <option value="">Select parameter...</option>
           </select>
-          <input type="number" class="param-value" id="value2" step="0.001" placeholder="значение">
+          <input type="number" class="param-value" id="value2" step="0.001" placeholder="value">
           <div class="fix-checkbox-container">
-            <input type="checkbox" class="fix-checkbox" id="fixParam2" title="Зафиксировать значение">
-            <label for="fixParam2" class="fix-checkbox-label">Закрепить</label>
+            <input type="checkbox" class="fix-checkbox" id="fixParam2" title="Lock value">
+            <label for="fixParam2" class="fix-checkbox-label">Lock</label>
           </div>
         </div>
         <div class="slider-container" id="sliderContainer2" style="display: none;">
@@ -268,12 +268,12 @@
         <div class="param-row" id="paramRow3">
           <div class="param-label">3.</div>
           <select class="param-select" id="param3">
-            <option value="">Выберите параметр...</option>
+            <option value="">Select parameter...</option>
           </select>
-          <input type="number" class="param-value" id="value3" step="0.001" placeholder="значение">
+          <input type="number" class="param-value" id="value3" step="0.001" placeholder="value">
           <div class="fix-checkbox-container">
-            <input type="checkbox" class="fix-checkbox" id="fixParam3" title="Зафиксировать значение">
-            <label for="fixParam3" class="fix-checkbox-label">Закрепить</label>
+            <input type="checkbox" class="fix-checkbox" id="fixParam3" title="Lock value">
+            <label for="fixParam3" class="fix-checkbox-label">Lock</label>
           </div>
         </div>
         <div class="slider-container" id="sliderContainer3" style="display: none;">
@@ -285,93 +285,93 @@
       </div>
       
       <div class="button-group">
-        <button id="solveBtn" onclick="startSolvingEnhanced()">Рассчитать</button>
-        <button id="randomBtn" onclick="generateRandomProblem()">Случайная задача</button>
-        <button id="randomParamsBtn" onclick="randomizeNonFixedParameters()" disabled>Случайные параметры</button>
-        <button id="clearBtn" onclick="clearAll()">Очистить</button>
+        <button id="solveBtn" onclick="startSolvingEnhanced()">Solve</button>
+        <button id="randomBtn" onclick="generateRandomProblem()">Random problem</button>
+        <button id="randomParamsBtn" onclick="randomizeNonFixedParameters()" disabled>Random parameters</button>
+        <button id="clearBtn" onclick="clearAll()">Clear</button>
       </div>
       
       <div class="button-group" style="margin-top: 10px;">
-        <button id="solveAllBtn" onclick="findAllSolutionsEnhanced()">Все решения</button>
-        <button id="checkBtn" onclick="checkCompatibility()">Проверить совместимость</button>
-        <button id="feasibilityBtn" onclick="checkPracticalFeasibilityUI()">Практическая проверка</button>
-        <button id="testBtn" onclick="testAndDisplayFormulas()">Тест формул</button>
-        <button id="validateBtn" onclick="validateCurrentTriangleEnhanced()">Проверить</button>
-        <button id="debugBtn" onclick="debugCoordinates()">Отладка</button>
+        <button id="solveAllBtn" onclick="findAllSolutionsEnhanced()">All solutions</button>
+        <button id="checkBtn" onclick="checkCompatibility()">Check compatibility</button>
+        <button id="feasibilityBtn" onclick="checkPracticalFeasibilityUI()">Practical check</button>
+        <button id="testBtn" onclick="testAndDisplayFormulas()">Test formulas</button>
+        <button id="validateBtn" onclick="validateCurrentTriangleEnhanced()">Validate</button>
+        <button id="debugBtn" onclick="debugCoordinates()">Debug</button>
       </div>
       
       <div class="button-group" style="margin-top: 10px;">
         <button onclick="generateTriangleByType('equilateral')" class="type-btn" style="background: #2ecc71;">
-          Равносторонний
+          Equilateral
         </button>
         <button onclick="generateTriangleByType('right')" class="type-btn" style="background: #e74c3c;">
-          Прямоугольный
+          Right
         </button>
         <button onclick="generateTriangleByType('isosceles')" class="type-btn" style="background: #3498db;">
-          Равнобедренный
+          Isosceles
         </button>
       </div>
       
       <div id="errorMessage" class="error-message hidden">
-        <!-- Сообщения об ошибках будут здесь -->
+        <!-- Errors will appear here -->
       </div>
       
       <div id="statusMessagesInline" class="status-panel" style="margin-top: 20px; display: none;">
-        <h4 style="margin-top: 0; margin-bottom: 10px;">Сообщения системы</h4>
+        <h4 style="margin-top: 0; margin-bottom: 10px;">System messages</h4>
         <div id="inlineStatusContent"></div>
       </div>
       
       <div class="progress-container" id="progressContainer">
         <div id="progressBar"></div>
       </div>
-      <span id="progressText">Готово</span>
+      <span id="progressText">Ready</span>
       
       <div id="compatibilityPanel" class="compatibility-panel" style="display: none;">
-        <h4 style="margin-top: 0; margin-bottom: 10px;">Проверка совместимости параметров</h4>
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Parameter compatibility check</h4>
         <div id="compatibilityResults"></div>
       </div>
       
       <div id="validationPanel" class="validation-panel" style="display: none;">
-        <h4 style="margin-top: 0; margin-bottom: 10px;">Проверка геометрии</h4>
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Geometry validation</h4>
         <div id="validationResults"></div>
       </div>
       
       <div class="info-box" style="margin-top: 20px;">
-        <strong>Подсказка:</strong> Выберите 3 разных параметра из списка. Используйте ползунки или введите значения вручную. Отметьте «Закрепить» для фиксации параметра. Нажмите "Рассчитать" для поиска треугольника.
+        <strong>Hint:</strong> Select 3 different parameters из списка. Используйте ползунки или введите значения вручную. Отметьте «Lock» для фиксации параметра. Нажмите "Solve" для поиска треугольника.
       </div>
     </div>
   </div>
   
   <div id="solutionsPanel" class="solutions-panel" style="display: none;">
     <div class="solutions-header">
-      <h3 style="margin: 0;">Найденные решения (<span id="solutionsCountDisplay">0</span>)</h3>
+      <h3 style="margin: 0;">Found solutions (<span id="solutionsCountDisplay">0</span>)</h3>
       <div>
-        <button onclick="showPreviousSolution()" class="nav-btn">◀ Предыдущее</button>
-        <button onclick="showNextSolution()" class="nav-btn">Следующее ▶</button>
-        <button onclick="closeSolutionsPanel()" class="nav-btn" style="background: #e74c3c;">✕ Закрыть</button>
+        <button onclick="showPreviousSolution()" class="nav-btn">◀ Previous</button>
+        <button onclick="showNextSolution()" class="nav-btn">Next ▶</button>
+        <button onclick="closeSolutionsPanel()" class="nav-btn" style="background: #e74c3c;">✕ Close</button>
       </div>
     </div>
     <div class="info-box" style="margin: 10px 0; padding: 8px; font-size: 13px;">
-      <strong>Все решения конгруэнтны или симметричны.</strong> Симметричные варианты отмечены 🪞. Нажмите на миниатюру для просмотра.
+      <strong>All solutions конгруэнтны или симметричны.</strong> Симметричные варианты отмечены 🪞. Нажмите на миниатюру для просмотра.
     </div>
     <div id="solutionsGrid" class="solutions-grid"></div>
     <div class="solution-navigation">
-      <button onclick="showSolution(0)" class="nav-btn">Первое</button>
-      <button onclick="showSolution(allSolutions.length-1)" class="nav-btn">Последнее</button>
+      <button onclick="showSolution(0)" class="nav-btn">First</button>
+      <button onclick="showSolution(allSolutions.length-1)" class="nav-btn">Last</button>
     </div>
   </div>
   
   <div class="panel" style="margin-top: 20px;">
-    <h2>Все параметры треугольника</h2>
+    <h2>All triangle parameters</h2>
     <div class="table-container">
       <table id="allParamsTable">
         <thead>
           <tr>
-            <th>№</th>
-            <th>Название</th>
+            <th>No.</th>
+            <th>Name</th>
             <th>Обозначение</th>
-            <th>Значение</th>
-            <th>Проверка</th>
+            <th>Value</th>
+            <th>Check</th>
           </tr>
         </thead>
         <tbody id="paramsTableBody">
@@ -424,24 +424,24 @@
     
     function initParameters() {
       allParameters = [
-        { name: 'Сторона AB', designation: 'c', key: 'sideAB' },
-        { name: 'Сторона BC', designation: 'a', key: 'sideBC' },
-        { name: 'Сторона AC', designation: 'b', key: 'sideAC' },
-        { name: 'Угол A', designation: 'α', key: 'angleA' },
-        { name: 'Угол B', designation: 'β', key: 'angleB' },
-        { name: 'Угол C', designation: 'γ', key: 'angleC' },
-        { name: 'Высота из A', designation: 'hₐ', key: 'altitudeA' },
-        { name: 'Высота из B', designation: 'hբ', key: 'altitudeB' },
-        { name: 'Высота из C', designation: 'h𝒸', key: 'altitudeC' },
-        { name: 'Биссектриса из A', designation: 'lₐ', key: 'bisectorA' },
-        { name: 'Биссектриса из B', designation: 'lբ', key: 'bisectorB' },
-        { name: 'Биссектриса из C', designation: 'l𝒸', key: 'bisectorC' },
-        { name: 'Медиана из A', designation: 'mₐ', key: 'medianA' },
-        { name: 'Медиана из B', designation: 'mբ', key: 'medianB' },
-        { name: 'Медиана из C', designation: 'm𝒸', key: 'medianC' },
-        { name: 'Радиус вписанной', designation: 'r', key: 'inradius' },
-        { name: 'Площадь', designation: 'S', key: 'area' },
-        { name: 'Радиус описанной', designation: 'R', key: 'circumradius' }
+        { name: 'Side AB', designation: 'c', key: 'sideAB' },
+        { name: 'Side BC', designation: 'a', key: 'sideBC' },
+        { name: 'Side AC', designation: 'b', key: 'sideAC' },
+        { name: 'Angle A', designation: 'α', key: 'angleA' },
+        { name: 'Angle B', designation: 'β', key: 'angleB' },
+        { name: 'Angle C', designation: 'γ', key: 'angleC' },
+        { name: 'Altitude from A', designation: 'hₐ', key: 'altitudeA' },
+        { name: 'Altitude from B', designation: 'hբ', key: 'altitudeB' },
+        { name: 'Altitude from C', designation: 'h𝒸', key: 'altitudeC' },
+        { name: 'Angle bisector from A', designation: 'lₐ', key: 'bisectorA' },
+        { name: 'Angle bisector from B', designation: 'lբ', key: 'bisectorB' },
+        { name: 'Angle bisector from C', designation: 'l𝒸', key: 'bisectorC' },
+        { name: 'Median from A', designation: 'mₐ', key: 'medianA' },
+        { name: 'Median from B', designation: 'mբ', key: 'medianB' },
+        { name: 'Median from C', designation: 'm𝒸', key: 'medianC' },
+        { name: 'Inradius', designation: 'r', key: 'inradius' },
+        { name: 'Area', designation: 'S', key: 'area' },
+        { name: 'Circumradius', designation: 'R', key: 'circumradius' }
       ];
       
       fillParameterSelects();
@@ -454,7 +454,7 @@
       
       selects.forEach((selectId, index) => {
         const select = document.getElementById(selectId);
-        select.innerHTML = '<option value="">Выберите параметр...</option>';
+        select.innerHTML = '<option value="">Select parameter...</option>';
         
         allParameters.forEach(param => {
           const option = document.createElement('option');
@@ -654,7 +654,7 @@
         if (paramKey && !isNaN(value)) {
           if (params.includes(paramKey)) {
             isValid = false;
-            showErrorMessage(`Параметр ${getParameterName(paramKey)} выбран дважды!`, true);
+            showErrorMessage(`Parameter ${getParameterName(paramKey)} selected twice!`, true);
             break;
           }
           
@@ -674,13 +674,13 @@
         selectedParameters = values;
         document.getElementById('solveBtn').disabled = false;
         document.getElementById('solveAllBtn').disabled = false;
-        document.getElementById('statusText').textContent = 'Готово к расчёту';
+        document.getElementById('statusText').textContent = 'Ready к расчёту';
         document.getElementById('statusText').style.color = '#2ecc71';
       } else {
         selectedParameters = {};
         document.getElementById('solveBtn').disabled = true;
         document.getElementById('solveAllBtn').disabled = true;
-        document.getElementById('statusText').textContent = 'Выберите 3 разных параметра';
+        document.getElementById('statusText').textContent = 'Select 3 different parameters';
         document.getElementById('statusText').style.color = '#7f8c8d';
       }
       
@@ -691,18 +691,18 @@
     function validateParameterValue(paramKey, value) {
       if (paramKey.includes('angle')) {
         if (value < 10 || value > 170) {
-          showErrorMessage(`Угол ${getParameterName(paramKey)} должен быть между 10° и 170°!`, true);
+          showErrorMessage(`Угол ${getParameterName(paramKey)} must be between 10° и 170°!`, true);
           return false;
         }
       } else if (value <= 0) {
-        showErrorMessage(`${getParameterName(paramKey)} должна быть положительной!`, true);
+        showErrorMessage(`${getParameterName(paramKey)} must be positive!`, true);
         return false;
       }
       
       const range = paramRanges[paramKey];
       if (range) {
         if (value < range.min || value > range.max) {
-          showErrorMessage(`${getParameterName(paramKey)} должна быть в диапазоне ${range.min} - ${range.max}!`, true);
+          showErrorMessage(`${getParameterName(paramKey)} must be within the range ${range.min} - ${range.max}!`, true);
           return false;
         }
       }
@@ -751,7 +751,7 @@
             lc: params.bisectorC
         };
         
-        // 1. Проверка треугольника по трем сторонам
+        // 1. Check треугольника по трем сторонам
         if (params.sideAB && params.sideBC && params.sideAC) {
             const a = params.sideBC;
             const b = params.sideAC;
@@ -764,24 +764,24 @@
             if (!triangleInequality1) {
                 checks.push({
                     type: 'error',
-                    message: `Нарушено неравенство треугольника: a(${a.toFixed(3)}) + b(${b.toFixed(3)}) > c(${c.toFixed(3)})`
+                    message: `Triangle inequality violated: a(${a.toFixed(3)}) + b(${b.toFixed(3)}) > c(${c.toFixed(3)})`
                 });
             }
             if (!triangleInequality2) {
                 checks.push({
                     type: 'error',
-                    message: `Нарушено неравенство треугольника: a(${a.toFixed(3)}) + c(${c.toFixed(3)}) > b(${b.toFixed(3)})`
+                    message: `Triangle inequality violated: a(${a.toFixed(3)}) + c(${c.toFixed(3)}) > b(${b.toFixed(3)})`
                 });
             }
             if (!triangleInequality3) {
                 checks.push({
                     type: 'error',
-                    message: `Нарушено неравенство треугольника: b(${b.toFixed(3)}) + c(${c.toFixed(3)}) > a(${a.toFixed(3)})`
+                    message: `Triangle inequality violated: b(${b.toFixed(3)}) + c(${c.toFixed(3)}) > a(${a.toFixed(3)})`
                 });
             }
         }
         
-        // 2. Проверка суммы углов
+        // 2. Check суммы углов
         const definedAngles = [];
         let definedAnglesSum = 0;
         const angleLetters = ['A', 'B', 'C'];
@@ -798,7 +798,7 @@
             if (definedAnglesSum >= 180 - ε) {
                 checks.push({
                     type: 'error',
-                    message: `Сумма заданных углов (${definedAnglesSum.toFixed(2)}°) должна быть строго меньше 180°`
+                    message: `Sum of the specified angles (${definedAnglesSum.toFixed(2)}°) must be strictly less than 180°`
                 });
             }
         }
@@ -808,17 +808,17 @@
             if (angleError > 1) {
                 checks.push({
                     type: 'error',
-                    message: `Сумма всех трех углов (${definedAnglesSum.toFixed(2)}°) должна быть равна 180° (±1°). Отклонение: ${angleError.toFixed(2)}°`
+                    message: `Sum of all three angles (${definedAnglesSum.toFixed(2)}°) must be equal to 180° (±1°). Deviation: ${angleError.toFixed(2)}°`
                 });
             } else if (angleError > 0.1) {
                 checks.push({
                     type: 'warning',
-                    message: `Сумма углов (${definedAnglesSum.toFixed(2)}°) немного отличается от 180°. Отклонение: ${angleError.toFixed(2)}°`
+                    message: `Сумма углов (${definedAnglesSum.toFixed(2)}°) немного отличается от 180°. Deviation: ${angleError.toFixed(2)}°`
                 });
             }
         }
         
-        // 3. Проверка теоремы синусов для известных пар сторона-противолежащий угол
+        // 3. Check теоремы синусов для известных пар сторона-противолежащий угол
         const sineLawPairs = [];
         
         if (knownSides.a && knownAngles.A) sineLawPairs.push({ side: knownSides.a, angle: knownAngles.A, ratio: null });
@@ -839,12 +839,12 @@
                 const ratioStr = sineLawPairs.map(p => p.ratio.toFixed(3)).join(', ');
                 checks.push({
                     type: 'error',
-                    message: `Нарушена теорема синусов. Отношения сторона/sin(угла) должны быть равны. Получено: ${ratioStr}`
+                    message: `Law of sines violated. The ratios side/sin(angle) must be equal. Получено: ${ratioStr}`
                 });
             }
         }
         
-        // 4. Проверка соотношений высот, медиан и биссектрис
+        // 4. Check соотношений высот, медиан и биссектрис
         const vertexChecks = [
             { vertex: 'A', side: 'a', height: knownHeights.ha, median: knownMedians.ma, bisector: knownBisectors.la },
             { vertex: 'B', side: 'b', height: knownHeights.hb, median: knownMedians.mb, bisector: knownBisectors.lb },
@@ -855,51 +855,51 @@
             const sideKey = `side${check.vertex === 'A' ? 'BC' : check.vertex === 'B' ? 'AC' : 'AB'}`;
             const oppositeSide = params[sideKey];
             
-            // Проверка высоты
+            // Check высоты
             if (check.height && oppositeSide) {
                 if (check.height > oppositeSide + ε) {
                     checks.push({
                         type: 'error',
-                        message: `Высота из вершины ${check.vertex} (${check.height.toFixed(3)}) не может быть больше противоположной стороны (${oppositeSide.toFixed(3)})`
+                        message: `Altitude from vertex ${check.vertex} (${check.height.toFixed(3)}) cannot be greater than the opposite side (${oppositeSide.toFixed(3)})`
                     });
                 }
                 
-                // Высота должна быть положительной
+                // Высота must be positive
                 if (check.height <= 0) {
                     checks.push({
                         type: 'error',
-                        message: `Высота из вершины ${check.vertex} (${check.height.toFixed(3)}) должна быть положительной`
+                        message: `Altitude from vertex ${check.vertex} (${check.height.toFixed(3)}) must be positive`
                     });
                 }
             }
             
-            // КРИТИЧЕСКАЯ ПРОВЕРКА: Медиана не может быть меньше высоты из той же вершины
+            // КРИТИЧЕСКАЯ ПРОВЕРКА: Медиана cannot be smaller than the altitude from the same vertex
             if (check.median && check.height) {
                 if (check.median < check.height - ε) {
                     checks.push({
                         type: 'error',
-                        message: `Медиана из вершины ${check.vertex} (${check.median.toFixed(3)}) не может быть меньше высоты из той же вершины (${check.height.toFixed(3)}). В треугольнике медиана всегда ≥ высоты из той же вершины.`
+                        message: `Median from vertex ${check.vertex} (${check.median.toFixed(3)}) cannot be smaller than the altitude from the same vertex (${check.height.toFixed(3)}). In any triangle, a median is always ≥ the altitude from the same vertex.`
                     });
                 }
             }
             
-            // КРИТИЧЕСКАЯ ПРОВЕРКА: Биссектриса не может быть меньше высоты из той же вершины
+            // КРИТИЧЕСКАЯ ПРОВЕРКА: Биссектриса cannot be smaller than the altitude from the same vertex
             if (check.bisector && check.height) {
                 if (check.bisector < check.height - ε) {
                     checks.push({
                         type: 'error',
-                        message: `Биссектриса из вершины ${check.vertex} (${check.bisector.toFixed(3)}) не может быть меньше высоты из той же вершины (${check.height.toFixed(3)}). В треугольнике биссектриса всегда ≥ высоты из той же вершины.`
+                        message: `Angle bisector from vertex ${check.vertex} (${check.bisector.toFixed(3)}) cannot be smaller than the altitude from the same vertex (${check.height.toFixed(3)}). In any triangle, an angle bisector is always ≥ the altitude from the same vertex.`
                     });
                 }
             }
             
-            // Проверка: Медиана не может превышать полусумму двух других сторон
+            // Check: Медиана не может превышать полусумму двух других сторон
             if (check.median && knownSides.b && knownSides.c && check.vertex === 'A') {
                 const maxMedian = 0.5 * (knownSides.b + knownSides.c);
                 if (check.median > maxMedian + ε) {
                     checks.push({
                         type: 'error',
-                        message: `Медиана из вершины A (${check.median.toFixed(3)}) не может превышать полусумму сторон b и c (${maxMedian.toFixed(3)})`
+                        message: `Median from vertex A (${check.median.toFixed(3)}) cannot exceed half the sum of the other two sides b и c (${maxMedian.toFixed(3)})`
                     });
                 }
             }
@@ -908,7 +908,7 @@
                 if (check.median > maxMedian + ε) {
                     checks.push({
                         type: 'error',
-                        message: `Медиана из вершины B (${check.median.toFixed(3)}) не может превышать полусумму сторон a и c (${maxMedian.toFixed(3)})`
+                        message: `Median from vertex B (${check.median.toFixed(3)}) cannot exceed half the sum of the other two sides a и c (${maxMedian.toFixed(3)})`
                 });
                 }
             }
@@ -917,22 +917,22 @@
                 if (check.median > maxMedian + ε) {
                     checks.push({
                         type: 'error',
-                        message: `Медиана из вершины C (${check.median.toFixed(3)}) не может превышать полусумму сторон a и b (${maxMedian.toFixed(3)})`
+                        message: `Median from vertex C (${check.median.toFixed(3)}) cannot exceed half the sum of the other two sides a и b (${maxMedian.toFixed(3)})`
                     });
                 }
             }
         });
         
-        // 5. Проверка радиусов окружностей
+        // 5. Check радиусов окружностей
         if (params.inradius && params.circumradius) {
             if (params.inradius > params.circumradius) {
                 checks.push({
                     type: 'error',
-                    message: `Радиус вписанной окружности (${params.inradius.toFixed(3)}) не может быть больше радиуса описанной (${params.circumradius.toFixed(3)})`
+                    message: `Inradius окружности (${params.inradius.toFixed(3)}) cannot be greater than the circumradius (${params.circumradius.toFixed(3)})`
                 });
             }
             
-            // Для остроугольного треугольника: R ≥ 2r
+            // For an acute triangle: R ≥ 2r
             if (params.inradius > 0 && params.circumradius > 0) {
                 if (params.circumradius < 2 * params.inradius) {
                     // Проверим, не является ли треугольник тупоугольным
@@ -951,12 +951,12 @@
             }
         }
         
-        // 6. Проверка площади
+        // 6. Check площади
         if (params.area) {
             if (params.area <= 0) {
                 checks.push({
                     type: 'error',
-                    message: `Площадь (${params.area.toFixed(3)}) должна быть положительной`
+                    message: `Area (${params.area.toFixed(3)}) must be positive`
                 });
             }
             
@@ -973,14 +973,14 @@
                     if (areaError > 0.1) {
                         checks.push({
                             type: 'error',
-                            message: `Заданная площадь (${params.area.toFixed(3)}) не соответствует площади по формуле Герона (${heronArea.toFixed(3)})`
+                            message: `Заданная площадь (${params.area.toFixed(3)}) does not match the Heron area (${heronArea.toFixed(3)})`
                         });
                     }
                 }
             }
         }
         
-        // 7. Проверка теоремы косинусов
+        // 7. Check теоремы косинусов
         if (params.sideAB && params.sideBC && params.angleC) {
             const c = params.sideAB;
             const a = params.sideBC;
@@ -990,7 +990,7 @@
             if (params.sideAC && Math.abs(params.sideAC - b_calculated) / Math.max(params.sideAC, b_calculated) > 0.1) {
                 checks.push({
                     type: 'error',
-                    message: `Сторона AC (${params.sideAC.toFixed(3)}) не соответствует теореме косинусов. Должна быть ≈ ${b_calculated.toFixed(3)}`
+                    message: `Side AC (${params.sideAC.toFixed(3)}) does not match the law of cosines. Should be ≈ ${b_calculated.toFixed(3)}`
                 });
             }
         }
@@ -1004,7 +1004,7 @@
             if (params.sideAB && Math.abs(params.sideAB - c_calculated) / Math.max(params.sideAB, c_calculated) > 0.1) {
                 checks.push({
                     type: 'error',
-                    message: `Сторона AB (${params.sideAB.toFixed(3)}) не соответствует теореме косинусов. Должна быть ≈ ${c_calculated.toFixed(3)}`
+                    message: `Side AB (${params.sideAB.toFixed(3)}) does not match the law of cosines. Should be ≈ ${c_calculated.toFixed(3)}`
                 });
             }
         }
@@ -1018,24 +1018,24 @@
             if (params.sideBC && Math.abs(params.sideBC - a_calculated) / Math.max(params.sideBC, a_calculated) > 0.1) {
                 checks.push({
                     type: 'error',
-                    message: `Сторона BC (${params.sideBC.toFixed(3)}) не соответствует теореме косинусов. Должна быть ≈ ${a_calculated.toFixed(3)}`
+                    message: `Side BC (${params.sideBC.toFixed(3)}) does not match the law of cosines. Should be ≈ ${a_calculated.toFixed(3)}`
                 });
             }
         }
         
-        // 8. Проверка на вырожденный треугольник
+        // 8. Check на вырожденный треугольник
         if (definedAngles.length === 3) {
             if (params.angleA < 1 || params.angleB < 1 || params.angleC < 1) {
                 checks.push({
                     type: 'warning',
-                    message: 'Углы слишком малы (< 1°), треугольник почти вырожденный'
+                    message: 'Углы слишком малы (< 1°), triangle is nearly degenerate'
                 });
             }
             
             if (params.angleA > 179 || params.angleB > 179 || params.angleC > 179) {
                 checks.push({
                     type: 'warning',
-                    message: 'Углы слишком близки к 180°, треугольник почти вырожденный'
+                    message: 'Углы слишком близки к 180°, triangle is nearly degenerate'
                 });
             }
         }
@@ -1060,7 +1060,7 @@
             }
         }
         
-        // 10. Проверка на "невозможные" комбинации высот
+        // 10. Check на "невозможные" комбинации высот
         if (knownHeights.ha && knownHeights.hb && knownHeights.hc) {
             // Для треугольника должны выполняться неравенства:
             // 1/hₐ + 1/hբ > 1/h𝒸 и т.д.
@@ -1089,7 +1089,7 @@
       const warnings = [];
       const errors = [];
       
-      // Проверка на почти вырожденные углы
+      // Check на почти вырожденные углы
       ['angleA', 'angleB', 'angleC'].forEach(angleKey => {
         if (params[angleKey]) {
           const angle = params[angleKey];
@@ -1105,18 +1105,18 @@
         }
       });
       
-      // Проверка на слишком экстремальные соотношения
+      // Check на слишком экстремальные соотношения
       if (params.inradius && params.circumradius) {
         const ratio = params.inradius / params.circumradius;
         if (ratio > 0.9) {
-          warnings.push(`Отношение r/R (${ratio.toFixed(3)}) слишком близко к 1, треугольник почти вырожденный`);
+          warnings.push(`Отношение r/R (${ratio.toFixed(3)}) слишком близко к 1, triangle is nearly degenerate`);
         }
         if (ratio < 0.001) {
           warnings.push(`Отношение r/R (${ratio.toFixed(6)}) слишком мало, возможны численные ошибки`);
         }
       }
       
-      // Проверка соотношений сторон
+      // Check соотношений сторон
       if (params.sideAB && params.sideBC && params.sideAC) {
         const sides = [params.sideBC, params.sideAC, params.sideAB];
         const maxSide = Math.max(...sides);
@@ -1130,14 +1130,14 @@
         }
       }
       
-      // Проверка на очень маленькие значения
+      // Check на очень маленькие значения
       Object.entries(params).forEach(([key, value]) => {
         if (value && Math.abs(value) < 1e-6 && !key.includes('angle')) {
-          warnings.push(`Параметр ${getParameterName(key)} (${value.toExponential(2)}) слишком мал для точных вычислений`);
+          warnings.push(`Parameter ${getParameterName(key)} (${value.toExponential(2)}) слишком мал для точных вычислений`);
         }
         
         if (value && Math.abs(value) > 1e6) {
-          warnings.push(`Параметр ${getParameterName(key)} (${value.toExponential(2)}) очень большой для точных вычислений`);
+          warnings.push(`Parameter ${getParameterName(key)} (${value.toExponential(2)}) очень большой для точных вычислений`);
         }
       });
       
@@ -1271,7 +1271,7 @@
           minTemperature: 0.01,
           maxIterations: 10000,
           
-          // Параметры цепи Маркова
+          // Parameterы цепи Маркова
           markovChainLength: 100,
           innerIterations: 10,
           
@@ -1373,7 +1373,7 @@
           }
         }
         
-        if (positiveCount === 0) return 1000; // Значение по умолчанию
+        if (positiveCount === 0) return 1000; // Value по умолчанию
         
         const avgPositiveDelta = totalPositiveDelta / positiveCount;
         
@@ -1434,10 +1434,10 @@
       initializeState() {
         // Несколько стратегий инициализации
         const strategies = [
-          // Равносторонний
+          // Equilateral
           () => ({ α: Math.PI/3, β: Math.PI/3, R: 1.0 }),
           
-          // Прямоугольный
+          // Right
           () => ({ α: Math.PI/2, β: Math.PI/4, R: 1.0 }),
           
           // Остроугольный
@@ -1732,7 +1732,7 @@
         let lastProgressUpdate = 0;
         
         for (this.iterations = 0; this.iterations < this.config.maxIterations; this.iterations++) {
-          // Проверка перезапуска
+          // Check перезапуска
           if (this.checkForRestart()) {
             this.performRestart();
             continue;
@@ -1758,7 +1758,7 @@
             this.acceptedMoves++;
             this.currentState = neighbor;
             
-            // Проверка на лучшее решение
+            // Check на лучшее решение
             if (this.currentState.error < this.bestState.error) {
               this.bestState = { ...this.currentState };
               this.improvements++;
@@ -1785,7 +1785,7 @@
             lastProgressUpdate = currentTime;
           }
           
-          // Проверка критериев остановки
+          // Check критериев остановки
           if (this.shouldStop()) {
             break;
           }
@@ -1931,7 +1931,7 @@
                 const refinedSolution = await this.goldenSectionRefinement(lmSolution, 10);
                 
                 // ФАЗА 4: Финальная проверка точности (5%)
-                await this.progressCallback(90, 0, refinedSolution.error, "Проверка точности...");
+                await this.progressCallback(90, 0, refinedSolution.error, "Check точности...");
                 const finalSolution = await this.finalPrecisionCheck(refinedSolution, 5);
                 
                 return this.prepareFinalSolution(finalSolution);
@@ -1962,14 +1962,14 @@
                 });
             }
             
-            // 2. Равносторонний треугольник
+            // 2. Equilateral треугольник
             guesses.push({
                 α: Math.PI/3,
                 β: Math.PI/3,
                 R: 1.0
             });
             
-            // 3. Прямоугольный треугольник
+            // 3. Right треугольник
             guesses.push({
                 α: Math.PI/2,
                 β: Math.PI/4,
@@ -2125,7 +2125,7 @@
 
         async levenbergMarquardt(initialState, maxIterations = 50) {
             let state = { ...initialState };
-            let λ = 0.001; // Параметр демпфирования
+            let λ = 0.001; // Parameter демпфирования
             let iteration = 0;
             let prevError = state.error;
             
@@ -2687,31 +2687,31 @@
         const errorMessages = compatibility.errors.map(e => e.message).join('\n• ');
         return {
           valid: false,
-          message: `Параметры несовместимы:\n• ${errorMessages}`
+          message: `Parameterы несовместимы:\n• ${errorMessages}`
         };
       }
       
-      // Проверка практической реализуемости
+      // Check практической реализуемости
       const practicalCheck = checkPracticalFeasibility(params);
       if (!practicalCheck.feasible) {
         const errorMessages = practicalCheck.errors.join('\n• ');
         return {
           valid: false,
-          message: `Параметры нереализуемы на практике:\n• ${errorMessages}`
+          message: `Parameterы нереализуемы на практике:\n• ${errorMessages}`
         };
       }
       
-      // Проверка численной стабильности
+      // Check численной стабильности
       const numericalCheck = checkNumericalFeasibility(params);
       if (!numericalCheck.feasible) {
         const errorMessages = numericalCheck.issues.join('\n• ');
         return {
           valid: false,
-          message: `Параметры численно нестабильны:\n• ${errorMessages}`
+          message: `Parameterы численно нестабильны:\n• ${errorMessages}`
         };
       }
       
-      // Проверка на "заведомо нерешаемые" комбинации
+      // Check на "заведомо нерешаемые" комбинации
       const vertexChecks = [
         { v: 'A', h: params.altitudeA, m: params.medianA, b: params.bisectorA },
         { v: 'B', h: params.altitudeB, m: params.medianB, b: params.bisectorB },
@@ -2723,7 +2723,7 @@
         if (check.m && check.h && check.m < check.h) {
           return {
             valid: false,
-            message: `Медиана из вершины ${check.v} (${check.m.toFixed(3)}) меньше высоты (${check.h.toFixed(3)}). Это невозможно в треугольнике.`
+            message: `Median from vertex ${check.v} (${check.m.toFixed(3)}) меньше высоты (${check.h.toFixed(3)}). Это невозможно в треугольнике.`
           };
         }
         
@@ -2731,12 +2731,12 @@
         if (check.b && check.h && check.b < check.h) {
           return {
             valid: false,
-            message: `Биссектриса из вершины ${check.v} (${check.b.toFixed(3)}) меньше высоты (${check.h.toFixed(3)}). Это невозможно в треугольнике.`
+            message: `Angle bisector from vertex ${check.v} (${check.b.toFixed(3)}) меньше высоты (${check.h.toFixed(3)}). Это невозможно в треугольнике.`
           };
         }
       }
       
-      // Проверка на слишком большие/маленькие значения
+      // Check на слишком большие/маленькие значения
       const maxReasonableValue = 1e6;
       const minReasonableValue = 1e-6;
       
@@ -2745,14 +2745,14 @@
           if (Math.abs(value) > maxReasonableValue) {
             return {
               valid: false,
-              message: `Параметр ${getParameterName(key)} (${value.toExponential(2)}) слишком большой для численной стабильности`
+              message: `Parameter ${getParameterName(key)} (${value.toExponential(2)}) слишком большой для численной стабильности`
             };
           }
           
           if (Math.abs(value) < minReasonableValue && !key.includes('angle')) {
             return {
               valid: false,
-              message: `Параметр ${getParameterName(key)} (${value.toExponential(2)}) слишком мал для численной стабильности`
+              message: `Parameter ${getParameterName(key)} (${value.toExponential(2)}) слишком мал для численной стабильности`
             };
           }
         }
@@ -2768,14 +2768,14 @@
       if (allWarnings.length > 0) {
         return {
           valid: true,
-          message: 'Параметры прошли проверку',
+          message: 'Parameterы прошли проверку',
           warnings: allWarnings
         };
       }
       
       return {
         valid: true,
-        message: 'Параметры прошли проверку'
+        message: 'Parameterы прошли проверку'
       };
     }
     
@@ -2951,8 +2951,8 @@
           clearSolutionOnInvalidParams();
         } finally {
           solveBtn.disabled = false;
-          solveBtn.textContent = 'Рассчитать';
-          progressText.textContent = 'Готово';
+          solveBtn.textContent = 'Solve';
+          progressText.textContent = 'Ready';
           
           setTimeout(() => {
             progressContainer.style.display = 'none';
@@ -3472,7 +3472,7 @@
         const div = document.createElement('div');
         div.className = 'compatibility-result validation-ok';
         div.innerHTML = `
-          <div><strong>✓ Параметры совместимы</strong></div>
+          <div><strong>✓ Parameterы совместимы</strong></div>
           <div>Можно запускать расчёт треугольника</div>
         `;
         resultsDiv.appendChild(div);
@@ -3492,7 +3492,7 @@
         const div = document.createElement('div');
         div.className = 'compatibility-result validation-error';
         div.innerHTML = `
-          <div><strong>✗ Параметры несовместимы</strong></div>
+          <div><strong>✗ Parameterы несовместимы</strong></div>
           <div>Невозможно построить треугольник с заданными параметрами</div>
         `;
         resultsDiv.appendChild(div);
@@ -3636,7 +3636,7 @@
       const R_from_sides = (a * b * c) / (4 * S);
       const R_error = Math.abs(R - R_from_sides);
       results.push({
-        test: 'Радиус описанной окружности',
+        test: 'Circumradius окружности',
         value: R.toFixed(6),
         expected: R_from_sides.toFixed(6),
         error: R_error,
@@ -3647,7 +3647,7 @@
       const r_from_sides = S / p;
       const r_error = Math.abs(r - r_from_sides);
       results.push({
-        test: 'Радиус вписанной окружности',
+        test: 'Inradius окружности',
         value: r.toFixed(6),
         expected: r_from_sides.toFixed(6),
         error: r_error,
@@ -3711,7 +3711,7 @@
         resultsDiv.appendChild(div);
       });
       
-      // Проверка практической реализуемости
+      // Check практической реализуемости
       if (practicalCheck.allIssues.length > 0) {
         const practicalDiv = document.createElement('div');
         practicalDiv.className = `validation-result ${practicalCheck.feasible ? 'validation-warning' : 'validation-error'}`;
@@ -4084,16 +4084,16 @@
       console.log('=== ТЕСТИРОВАНИЕ ФОРМУЛ ===');
       
       const equilateral = generateEquilateralTriangle();
-      console.log('\n1. Равносторонний треугольник (α=β=γ=60°, R=1):');
+      console.log('\n1. Equilateral треугольник (α=β=γ=60°, R=1):');
       console.log('Стороны (ожидается ~1.732):', 
         equilateral.params.sideAB, equilateral.params.sideBC, equilateral.params.sideAC);
       
       const right = generateRightTriangle();
-      console.log('\n2. Прямоугольный треугольник (α=90°, β=γ=45°, R=1):');
+      console.log('\n2. Right треугольник (α=90°, β=γ=45°, R=1):');
       console.log('Стороны:', right.params.sideAB, right.params.sideBC, right.params.sideAC);
       
       const validation = validateTriangleGeometry(equilateral.params);
-      console.log('\n3. Проверка геометрии равностороннего треугольника:');
+      console.log('\n3. Geometry validation равностороннего треугольника:');
       console.log(`Пройдено тестов: ${validation.results.filter(r => r.passed).length}/${validation.results.length}`);
       console.log(`Оценка: ${validation.score.toFixed(1)}%`);
       
@@ -4129,8 +4129,8 @@
       document.getElementById('solveBtn').disabled = true;
       document.getElementById('solveAllBtn').disabled = true;
       document.getElementById('randomParamsBtn').disabled = true;
-      document.getElementById('solveBtn').textContent = 'Рассчитать';
-      document.getElementById('statusText').textContent = 'Ожидание входных данных';
+      document.getElementById('solveBtn').textContent = 'Solve';
+      document.getElementById('statusText').textContent = 'Waiting for input';
       document.getElementById('statusText').style.color = '#7f8c8d';
       document.getElementById('accuracyText').textContent = '-';
       document.getElementById('iterationsText').textContent = '0';
@@ -4255,7 +4255,7 @@
         clearSolutionOnInvalidParams();
       } finally {
         solveAllBtn.disabled = false;
-        solveAllBtn.textContent = 'Все решения';
+        solveAllBtn.textContent = 'All solutions';
         progressContainer.style.display = 'none';
         progressBar.style.width = '0%';
         isFindingAll = false;
@@ -4392,7 +4392,7 @@
             α=${solution.angles.α.toFixed(1)}°<br>
             β=${solution.angles.β.toFixed(1)}°<br>
             ${typeName}<br>
-            <small>Точность: ${errorPercent}%</small>
+            <small>Accuracy: ${errorPercent}%</small>
           </div>
           <div class="solution-actions">
             <button class="solution-btn view-btn" onclick="event.stopPropagation(); showSolution(${index})">
@@ -4665,7 +4665,7 @@
       compatDiv.className = `compatibility-result ${compatibility.passed ? 'validation-ok' : 'validation-error'}`;
       compatDiv.innerHTML = `
         <div><strong>${compatibility.passed ? '✓' : '✗'} Совместимость параметров:</strong></div>
-        <div>${compatibility.passed ? 'Параметры совместимы' : 'Есть несовместимые параметры'}</div>
+        <div>${compatibility.passed ? 'Parameterы совместимы' : 'Есть несовместимые параметры'}</div>
         <div style="font-size: 11px;">Проверено: ${compatibility.allChecks.length} условий</div>
       `;
       resultsDiv.appendChild(compatDiv);
@@ -4675,7 +4675,7 @@
       practicalDiv.className = `compatibility-result ${practicalCheck.feasible ? 'validation-ok' : 'validation-error'}`;
       practicalDiv.innerHTML = `
         <div><strong>${practicalCheck.feasible ? '✓' : '✗'} Практическая реализуемость:</strong></div>
-        <div>${practicalCheck.feasible ? 'Параметры реализуемы' : 'Есть проблемы с реализацией'}</div>
+        <div>${practicalCheck.feasible ? 'Parameterы реализуемы' : 'Есть проблемы с реализацией'}</div>
         <div style="font-size: 11px;">Ошибок: ${practicalCheck.errors.length}, Предупреждений: ${practicalCheck.warnings.length}</div>
       `;
       resultsDiv.appendChild(practicalDiv);
@@ -4685,7 +4685,7 @@
       numericalDiv.className = `compatibility-result ${numericalCheck.feasible ? 'validation-ok' : 'validation-error'}`;
       numericalDiv.innerHTML = `
         <div><strong>${numericalCheck.feasible ? '✓' : '✗'} Численная стабильность:</strong></div>
-        <div>${numericalCheck.feasible ? 'Параметры стабильны' : 'Возможны численные ошибки'}</div>
+        <div>${numericalCheck.feasible ? 'Parameterы стабильны' : 'Возможны численные ошибки'}</div>
         <div style="font-size: 11px;">Проблем: ${numericalCheck.issues.length}</div>
       `;
       resultsDiv.appendChild(numericalDiv);
@@ -4748,7 +4748,7 @@
           const value = parseFloat(this.value);
           if (isNaN(value)) return;
           
-          // Проверка практической реализуемости для отдельных значений
+          // Check практической реализуемости для отдельных значений
           if (paramKey.includes('angle')) {
             if (value < 0.1 || value > 179.9) {
               this.style.borderColor = '#e74c3c';
@@ -4759,10 +4759,10 @@
           } else {
             if (value < 0.001) {
               this.style.borderColor = '#e74c3c';
-              showStatusMessage(`Значение слишком мало (${value})`, 'warning');
+              showStatusMessage(`Value слишком мало (${value})`, 'warning');
             } else if (value > 1000) {
               this.style.borderColor = '#e74c3c';
-              showStatusMessage(`Значение слишком велико (${value})`, 'warning');
+              showStatusMessage(`Value слишком велико (${value})`, 'warning');
             } else {
               this.style.borderColor = '#2ecc71';
             }
@@ -4775,19 +4775,19 @@
     function checkNumericalFeasibility(params) {
       const issues = [];
       
-      // Проверка на NaN и бесконечности
+      // Check на NaN и бесконечности
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           if (isNaN(value)) {
-            issues.push(`Параметр ${getParameterName(key)} содержит NaN`);
+            issues.push(`Parameter ${getParameterName(key)} содержит NaN`);
           }
           if (!isFinite(value)) {
-            issues.push(`Параметр ${getParameterName(key)} содержит бесконечное значение`);
+            issues.push(`Parameter ${getParameterName(key)} содержит бесконечное значение`);
           }
         }
       });
       
-      // Проверка условий для численной стабильности
+      // Check условий для численной стабильности
       const definedAngles = [];
       let anglesSum = 0;
       
@@ -4811,7 +4811,7 @@
         }
       }
       
-      // Проверка на практически вырожденный треугольник
+      // Check на практически вырожденный треугольник
       if (params.angleA && params.angleB && params.angleC) {
         const minAngle = Math.min(params.angleA, params.angleB, params.angleC);
         const maxAngle = Math.max(params.angleA, params.angleB, params.angleC);
@@ -4824,7 +4824,7 @@
           issues.push(`Максимальный угол (${maxAngle.toFixed(2)}°) слишком близок к 180°`);
         }
         
-        // Проверка на почти прямолинейный треугольник
+        // Check на почти прямолинейный треугольник
         if (anglesSum > 179.9 && anglesSum < 180.1) {
           if (maxAngle > 179.5 || minAngle < 0.5) {
             issues.push("Треугольник практически вырожденный (один угол очень близок к 180°)");
