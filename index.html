@@ -405,9 +405,9 @@
  { name: 'Angle A', designation: 'α', key: 'angleA' },
  { name: 'Angle B', designation: 'β', key: 'angleB' },
  { name: 'Angle C', designation: 'γ', key: 'angleC' },
- { name: 'Altitude from A', designation: 'hₐ', key: 'altitudeA' },
- { name: 'Altitude from B', designation: 'hբ', key: 'altitudeB' },
- { name: 'Altitude from C', designation: 'h𝒸', key: 'altitudeC' },
+ { name: 'Height from A', designation: 'hₐ', key: 'altitudeA' },
+ { name: 'Height from B', designation: 'hբ', key: 'altitudeB' },
+ { name: 'Height from C', designation: 'h𝒸', key: 'altitudeC' },
  { name: 'Angle bisector from A', designation: 'lₐ', key: 'bisectorA' },
  { name: 'Angle bisector from B', designation: 'lբ', key: 'bisectorB' },
  { name: 'Angle bisector from C', designation: 'l𝒸', key: 'bisectorC' },
@@ -764,14 +764,14 @@
  if (check.height > oppositeSide + ε) {
  checks.push({
  type: 'error',
- message: `Altitude from vertex ${check.vertex} (${check.height.toFixed(3)}) cannot be greater than the opposite side (${oppositeSide.toFixed(3)})`
+ message: `Height from vertex ${check.vertex} (${check.height.toFixed(3)}) cannot be greater than the opposite side (${oppositeSide.toFixed(3)})`
  });
  }
  // must be positive
  if (check.height <= 0) {
  checks.push({
  type: 'error',
- message: `Altitude from vertex ${check.vertex} (${check.height.toFixed(3)}) must be positive`
+ message: `Height from vertex ${check.vertex} (${check.height.toFixed(3)}) must be positive`
  });
  }
  }
